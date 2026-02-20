@@ -41,10 +41,10 @@ export default function Sidebar() {
         transform transition-transform duration-300
         ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
-                <div className="flex items-center gap-3 mb-8 mt-12 md:mt-0">
-          <img src="/logo.png" alt="Logo" className="w-10 h-10 rounded-lg object-cover" />
-          <h1 className="text-xl font-bold text-white">Brylle's Network<br/><span className="text-sm font-normal text-cyan-400">& Data Solutions</span></h1>
-        </div>
+        <h1 className="text-2xl font-bold text-white mb-8 mt-12 md:mt-0" style={{ fontFamily: 'Poppins, sans-serif', letterSpacing: '0.5px' }}>
+          Brylle's Network<br/>
+          <span className="text-sm font-normal text-gray-400" style={{ fontFamily: 'Poppins, sans-serif' }}>& Data Solutions</span>
+        </h1>
         <nav className="space-y-2">
           {navItems.map((item) => {
             const Icon = item.icon

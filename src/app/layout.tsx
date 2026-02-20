@@ -3,8 +3,12 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import Sidebar from "../components/Sidebar";
 import SettingsProvider from "../components/SettingsProvider";
+import { Poppins } from "next/font/google";
 
-const inter = Inter({ subsets: ["latin"] });
+const poppins = Poppins({ 
+  subsets: ["latin"],
+  weight: ['400', '600', '700'],
+});
 
 export const metadata: Metadata = {
   title: "Brylle's Network & Data Solutions",
@@ -18,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={poppins.className}>
         <SettingsProvider>
           <div className="flex min-h-screen">
             <Sidebar />
