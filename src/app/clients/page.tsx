@@ -1,17 +1,21 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
-import { Plus, Search, Edit, Trash2, X } from 'lucide-react'
+import { Plus, Search, Edit, Trash2, X, MapPin, PlusCircle } from 'lucide-react'
 import DatePicker from '../../components/DatePicker'
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<any[]>([])
   const [plans, setPlans] = useState<any[]>([])
+  const [locations, setLocations] = useState<any[]>([])
   
   const [locFilter, setLocFilter] = useState('All')
   const [search, setSearch] = useState('')
 
   const [showModal, setShowModal] = useState(false)
+  const [showLocationModal, setShowLocationModal] = useState(false)
+  const [newLocation, setNewLocation] = useState('')
+  
   const [formData, setFormData] = useState({
     client_name: '', contact_number: '', location: '', plan_id: '', due_date: '', notes: ''
   })
@@ -24,20 +28,21 @@ export default function ClientsPage() {
       supabase.from('clients').select('*, plans(name, price)'),
       supabase.from('plans').select('*')
     ])
+    
+    const uniqueLocs = [...new Set(clientsRes.data?.map(c => c.location).filter(Boolean))]
+    setLocations(uniqueLocs || [])
+    
     setClients(clientsRes.data || [])
     setPlans(planRes.data || [])
   }
 
-  // Auto-calculate status based on due_date
   const getAutoStatus = (client: any) => {
   if (!client.due_date) return { text: 'Active', color: 'bg-green-500/10 text-green-500' }
   
   const today = new Date()
   const dueDate = new Date(client.due_date)
   
-  // If due date is today or past = Unpaid
   if (dueDate <= today) {
-    // Check if more than 30 days overdue
     const daysOverdue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
     if (daysOverdue > 30) {
       return { text: 'Unsettled', color: 'bg-orange-500/10 text-orange-500' }
@@ -45,7 +50,6 @@ export default function ClientsPage() {
     return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
   }
   
-  // If due date is future = Active
   return { text: 'Active', color: 'bg-green-500/10 text-green-500' }
 }
 
@@ -53,8 +57,6 @@ export default function ClientsPage() {
     .filter(c => locFilter === 'All' || c.location === locFilter)
     .filter(c => c.client_name.toLowerCase().includes(search.toLowerCase()) || c.contact_number?.includes(search))
     .sort((a, b) => a.client_name.localeCompare(b.client_name))
-
-  const uniqueLocations = [...new Set(clients.map(c => c.location).filter(Boolean))]
 
   const handleSave = async () => {
     if (!formData.client_name || !formData.location || !formData.plan_id) {
@@ -90,6 +92,18 @@ export default function ClientsPage() {
     setShowModal(true)
   }
 
+  const handleDateChange = (date: string) => {
+    setFormData({...formData, due_date: date})
+  }
+
+  const handleAddLocation = async () => {
+    if (!newLocation.trim()) return
+    setLocations([...locations, newLocation.trim()])
+    setFormData({...formData, location: newLocation.trim()})
+    setNewLocation('')
+    setShowLocationModal(false)
+  }
+
   return (
     <div>
       <div className="flex flex-col md:flex-row justify-between mb-6 gap-4">
@@ -106,7 +120,7 @@ export default function ClientsPage() {
         </div>
         <select className="bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-white" onChange={e => setLocFilter(e.target.value)}>
           <option value="All">All Locations</option>
-          {uniqueLocations.map((loc: any) => <option key={loc} value={loc}>{loc}</option>)}
+          {locations.map((loc: any) => <option key={loc} value={loc}>{loc}</option>)}
         </select>
       </div>
 
@@ -167,7 +181,15 @@ export default function ClientsPage() {
               </div>
               <div>
                 <label className="block text-sm text-slate-400 mb-1">Location *</label>
-                <input type="text" className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white" placeholder="Enter location" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} />
+                <div className="flex gap-2">
+                  <select className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white flex-1" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})}>
+                    <option value="">Select</option>
+                    {locations.map((loc: any) => <option key={loc} value={loc}>{loc}</option>)}
+                  </select>
+                  <button type="button" onClick={() => setShowLocationModal(true)} className="bg-green-600 hover:bg-green-700 px-3 rounded-lg text-white">
+                    <PlusCircle size={20} />
+                  </button>
+                </div>
               </div>
               <div>
                 <label className="block text-sm text-slate-400 mb-1">Plan *</label>
@@ -177,8 +199,8 @@ export default function ClientsPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Due Date (Leave empty = Active)</label>
-                <input type="date" className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white" value={formData.due_date} onChange={e => setFormData({...formData, due_date: e.target.value})} />
+                <label className="block text-sm text-slate-400 mb-1">Due Date</label>
+                <DatePicker value={formData.due_date} onChange={handleDateChange} />
               </div>
               <div>
                 <label className="block text-sm text-slate-400 mb-1">Notes</label>
@@ -187,6 +209,27 @@ export default function ClientsPage() {
               <div className="flex justify-end gap-3 mt-6">
                 <button onClick={() => setShowModal(false)} className="px-4 py-2 rounded-lg text-slate-300 hover:bg-slate-700">Cancel</button>
                 <button onClick={handleSave} className="bg-cyan-600 hover:bg-cyan-700 px-6 py-2 rounded-lg font-bold">{editId ? 'Update' : 'Save'}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showLocationModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-slate-800 p-6 rounded-xl w-full max-w-sm border border-slate-700">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold">Add New Location</h3>
+              <button onClick={() => setShowLocationModal(false)} className="text-slate-400 hover:text-white"><X size={24} /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">Location Name</label>
+                <input type="text" className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white" placeholder="e.g., Poblacion" value={newLocation} onChange={e => setNewLocation(e.target.value)} />
+              </div>
+              <div className="flex justify-end gap-3">
+                <button onClick={() => setShowLocationModal(false)} className="px-4 py-2 rounded-lg text-slate-300 hover:bg-slate-700">Cancel</button>
+                <button onClick={handleAddLocation} className="bg-green-600 hover:bg-green-700 px-6 py-2 rounded-lg font-bold">Add</button>
               </div>
             </div>
           </div>
