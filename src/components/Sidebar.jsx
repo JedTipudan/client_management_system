@@ -2,7 +2,6 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Users, Calendar, MapPin, Settings, Menu, X } from 'lucide-react'
 import { Home, Users, Calendar, MapPin, Settings, Menu, X, Tag } from 'lucide-react'
 
 export default function Sidebar() {
@@ -14,8 +13,8 @@ export default function Sidebar() {
     { href: '/clients', icon: Users, label: 'Clients' },
     { href: '/due-dates', icon: Calendar, label: 'Due Dates' },
     { href: '/locations', icon: MapPin, label: 'Locations' },
-    { href: '/settings', icon: Settings, label: 'Settings' },
     { href: '/plans', icon: Tag, label: 'Plans' },
+    { href: '/settings', icon: Settings, label: 'Settings' },
   ]
 
   return (
@@ -43,10 +42,20 @@ export default function Sidebar() {
         transform transition-transform duration-300
         ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
-        <h1 className="text-2xl font-bold text-white mb-8 mt-12 md:mt-0" style={{ fontFamily: 'Poppins, sans-serif', letterSpacing: '0.5px' }}>
+        {/* Logo at top of sidebar */}
+        <div className="mb-6 mt-12 md:mt-0">
+          <img 
+            src="/logo.png" 
+            alt="Logo" 
+            className="w-16 h-16 mx-auto rounded-xl object-contain bg-white/10 p-2"
+          />
+        </div>
+        
+        <h1 className="text-xl font-bold text-white text-center mb-6" style={{ fontFamily: 'Poppins, sans-serif' }}>
           Brylle's Network<br/>
-          <span className="text-sm font-bold text-gray-400" style={{ fontFamily: 'Poppins, sans-serif' }}>& Data Solutions</span>
+          <span className="text-white text-sm font-normal">& Data Solutions</span>
         </h1>
+        
         <nav className="space-y-2">
           {navItems.map((item) => {
             const Icon = item.icon
