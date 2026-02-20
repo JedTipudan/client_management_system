@@ -8,6 +8,20 @@ export default function Dashboard() {
   const [clients, setClients] = useState<any[]>([])
   const [plans, setPlans] = useState<any[]>([])
 
+  // --- Admin Logic ---
+  const [user, setUser] = useState<any>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      const userData = data.user
+      setUser(userData)
+      if (userData?.email) {
+        setIsAdmin(['ronnelpaciano.1986@gmail.com'].includes(userData.email.toLowerCase()))
+      }
+    })
+  }, [])
+
   useEffect(() => {
     const fetchData = async () => {
       const { data: clientsData } = await supabase.from('clients').select('*, plans(price)').order('created_at', { ascending: false })
@@ -88,14 +102,17 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="flex gap-4 mb-8">
-        <Link href="/clients" className="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 px-6 py-3 rounded-lg font-semibold transition">
-          <Plus size={20} /> Add Client
-        </Link>
-        <Link href="/due-dates" className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 px-6 py-3 rounded-lg font-semibold transition">
-          <Clock size={20} /> View Due Dates
-        </Link>
-      </div>
+      {/* Admin Only: Action Buttons */}
+      {isAdmin && (
+        <div className="flex gap-4 mb-8">
+          <Link href="/clients" className="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 px-6 py-3 rounded-lg font-semibold transition">
+            <Plus size={20} /> Add Client
+          </Link>
+          <Link href="/due-dates" className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 px-6 py-3 rounded-lg font-semibold transition">
+            <Clock size={20} /> View Due Dates
+          </Link>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-transparent backdrop-blur-sm backdrop-blur-sm rounded-xl border border-white/10 p-6">
