@@ -117,7 +117,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div className="bg-gradient-to-br from-yellow-500/30 to-orange-600/30 backdrop-blur-sm rounded-xl border border-white/10 p-6">
+        <div className="bg-white/5 backdrop-blur-sm backdrop-blur-sm rounded-xl border border-white/10 p-6">
           <h3 className="text-xl font-bold mb-4">Upcoming Due Dates</h3>
           {upcomingDue.length === 0 ? (
             <p className="text-slate-400">No upcoming due dates</p>
