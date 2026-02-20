@@ -19,14 +19,22 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Check if we're on an auth page
+  const isAuthPage = typeof window !== 'undefined' && (
+    window.location.pathname === '/login' ||
+    window.location.pathname === '/signup' ||
+    window.location.pathname === '/forgot-password' ||
+    window.location.pathname === '/update-password'
+  )
+
   return (
     <html lang="en">
       <body className={poppins.className}>
         <SettingsProvider>
           <div className="flex min-h-screen relative">
-            <Sidebar />
-            <main className="flex-1 p-4 md:p-8 w-full md:ml-0">
-              {/* Background Logo - Behind content */}
+            {!isAuthPage && <Sidebar />}
+            <main className={`flex-1 p-4 md:p-8 w-full ${!isAuthPage ? 'md:ml-0' : ''}`}>
+              {/* Background Logo */}
               <div 
                 className="fixed inset-0 pointer-events-none z-0"
                 style={{
@@ -37,7 +45,6 @@ export default function RootLayout({
                   opacity: 0.08,
                 }}
               />
-              {/* Content with slight transparency to see logo behind */}
               <div className="relative z-10">
                 {children}
               </div>
