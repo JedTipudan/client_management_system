@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
-import { Plus, Search, Edit, Trash2, X, CheckCircle } from 'lucide-react'
+import { Plus, Search, Edit, Trash2, X } from 'lucide-react'
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<any[]>([])
@@ -48,38 +48,6 @@ export default function ClientsPage() {
   
   return { text: 'Active', color: 'bg-green-500/10 text-green-500' }
 }
-
-      // Auto advance due date by exactly 1 month (same day)
-  const handleMarkAsPaid = async (client: any) => {
-    if (!client.due_date) {
-      alert("This client has no due date to advance")
-      return
-    }
-
-    // Split the date
-    const [year, month, day] = client.due_date.split('-').map(Number)
-    
-    // Calculate new month and year
-    let newMonth = month + 1
-    let newYear = year
-    
-    if (newMonth > 12) {
-      newMonth = 1
-      newYear = year + 1
-    }
-
-    // Handle months with fewer days (e.g., Jan 31 -> Feb 28)
-    const daysInMonth = new Date(newYear, newMonth, 0).getDate()
-    const finalDay = Math.min(day, daysInMonth)
-
-    // Format as YYYY-MM-DD
-    const newDueDateStr = `${newYear}-${String(newMonth).padStart(2, '0')}-${String(finalDay).padStart(2, '0')}`
-
-    if (confirm(`Mark as paid?\nDue date will advance from ${client.due_date} to ${newDueDateStr}`)) {
-      await supabase.from('clients').update({ due_date: newDueDateStr }).eq('id', client.id)
-      fetchData()
-    }
-  }
 
   const filteredClients = clients
     .filter(c => locFilter === 'All' || c.location === locFilter)
@@ -169,13 +137,6 @@ export default function ClientsPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button 
-                      onClick={() => handleMarkAsPaid(client)} 
-                      className="text-green-400 hover:text-green-300 mr-3"
-                      title="Mark as Paid (Advance Due Date)"
-                    >
-                      <CheckCircle size={18} />
-                    </button>
                     <button onClick={() => openEdit(client)} className="text-cyan-400 hover:text-cyan-300 mr-3"><Edit size={18} /></button>
                     <button onClick={() => handleDelete(client.id)} className="text-red-400 hover:text-red-300"><Trash2 size={18} /></button>
                   </td>
