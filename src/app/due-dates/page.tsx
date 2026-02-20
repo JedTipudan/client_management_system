@@ -1,11 +1,13 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
+import { CheckCircle, Loader2 } from 'lucide-react'
 
 export default function DueDatesPage() {
   const [clients, setClients] = useState<any[]>([])
   const [statusFilter, setStatusFilter] = useState('all')
   const [locFilter, setLocFilter] = useState('All')
+  const [processingId, setProcessingId] = useState<string | null>(null)
 
   useEffect(() => { 
     fetchData() 
@@ -29,19 +31,16 @@ export default function DueDatesPage() {
     return 'paid'
   }
 
-  // Get unique locations for dropdown
   const uniqueLocations = [...new Set(clients.map(c => c.location).filter(Boolean))]
 
   const filteredClients = clients
-    .filter((c: any) => c.due_date) // Only show clients with due dates
+    .filter((c: any) => c.due_date)
     .filter((c: any) => {
-      // Status filter
       const status = getStatus(c)
       if (statusFilter === 'all') return true
       return status === statusFilter
     })
     .filter((c: any) => {
-      // Location filter
       if (locFilter === 'All') return true
       return c.location === locFilter
     })
@@ -51,6 +50,32 @@ export default function DueDatesPage() {
     paid: clients.filter(c => getStatus(c) === 'paid').length,
     unpaid: clients.filter(c => getStatus(c) === 'unpaid').length,
     unsettled: clients.filter(c => getStatus(c) === 'unsettled').length,
+  }
+
+  // --- MARK AS PAID FUNCTION ---
+  const handleMarkAsPaid = async (id: string) => {
+    if (!confirm('Mark this client as paid? Due date will be moved to next month.')) return
+    
+    setProcessingId(id)
+    
+    // Move due date 30 days forward
+    const nextDate = new Date()
+    nextDate.setDate(nextDate.getDate() + 30)
+    
+    const { error } = await supabase
+      .from('clients')
+      .update({ 
+        due_date: nextDate.toISOString().split('T')[0],
+        updated_at: new Date()
+      })
+      .eq('id', id)
+
+    if (!error) {
+      fetchData() // Refresh the list
+    } else {
+      alert("Error: " + error.message)
+    }
+    setProcessingId(null)
   }
 
   return (
@@ -68,14 +93,13 @@ export default function DueDatesPage() {
           <p className="text-2xl font-bold">{stats.unpaid}</p>
         </div>
         <div className="p-4 bg-orange-500/10 border border-orange-500/30 rounded-xl">
-          <p className="text-orange-400 font-bold">Unsettled (30+ days)</p>
+          <p className="text-orange-400 font-bold">Unsettled</p>
           <p className="text-2xl font-bold">{stats.unsettled}</p>
         </div>
       </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-4 mb-6">
-        {/* Location Filter */}
         <select 
           className="bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-white"
           value={locFilter}
@@ -85,7 +109,6 @@ export default function DueDatesPage() {
           {uniqueLocations.map((loc: any) => <option key={loc} value={loc}>{loc}</option>)}
         </select>
 
-        {/* Status Filter Buttons */}
         <button onClick={() => setStatusFilter('all')} className={`px-4 py-2 rounded-lg ${statusFilter === 'all' ? 'bg-cyan-600' : 'bg-slate-700'}`}>All</button>
         <button onClick={() => setStatusFilter('paid')} className={`px-4 py-2 rounded-lg ${statusFilter === 'paid' ? 'bg-green-600' : 'bg-slate-700'}`}>Paid</button>
         <button onClick={() => setStatusFilter('unpaid')} className={`px-4 py-2 rounded-lg ${statusFilter === 'unpaid' ? 'bg-red-600' : 'bg-slate-700'}`}>Unpaid</button>
@@ -102,11 +125,14 @@ export default function DueDatesPage() {
               <th className="px-6 py-4">Plan</th>
               <th className="px-6 py-4">Due Date</th>
               <th className="px-6 py-4">Status</th>
+              <th className="px-6 py-4 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-700">
             {filteredClients.map((client: any) => {
               const status = getStatus(client)
+              const isProcessing = processingId === client.id
+              
               return (
                 <tr key={client.id} className="hover:bg-slate-700/50">
                   <td className="px-6 py-4 font-medium">{client.client_name}</td>
@@ -122,12 +148,25 @@ export default function DueDatesPage() {
                       {status === 'paid' ? 'Paid' : status === 'unpaid' ? 'Unpaid' : 'Unsettled'}
                     </span>
                   </td>
+                  <td className="px-6 py-4 text-right">
+                    {/* BUTTON: Only show if NOT paid */}
+                    {status !== 'paid' && (
+                      <button 
+                        onClick={() => handleMarkAsPaid(client.id)}
+                        disabled={isProcessing}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold rounded disabled:opacity-50"
+                      >
+                        {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
+                        {isProcessing ? 'Processing...' : 'Mark Paid'}
+                      </button>
+                    )}
+                  </td>
                 </tr>
               )
             })}
             {filteredClients.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-6 py-8 text-center text-slate-500">No clients found</td>
+                <td colSpan={6} className="px-6 py-8 text-center text-slate-500">No clients found</td>
               </tr>
             )}
           </tbody>
