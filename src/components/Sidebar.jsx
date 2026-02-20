@@ -1,12 +1,31 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Users, Calendar, MapPin, Settings, Menu, X, Tag } from 'lucide-react'
+import { Home, Users, Calendar, MapPin, Settings, Menu, X, Tag, LogIn, LogOut, User } from 'lucide-react'
+import { supabase } from '../lib/supabaseClient'
 
 export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false)
   const pathname = usePathname()
+  const [user, setUser] = useState<any>(null)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user)
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    window.location.href = '/login'
+  }
 
   const navItems = [
     { href: '/', icon: Home, label: 'Dashboard' },
@@ -42,9 +61,7 @@ export default function Sidebar() {
         transform transition-transform duration-300
         ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
-
-        
-        <h1 className="text-xl font-bold text-white text-center mb-6" style={{ fontFamily: 'Poppins, sans-serif' }}>
+        <h1 className="text-xl font-bold text-white text-center mb-6 mt-12 md:mt-0" style={{ fontFamily: 'Poppins, sans-serif' }}>
           Brylle's Network<br/>
           <span className="text-white text-sm font-normal">& Data Solutions</span>
         </h1>
@@ -70,6 +87,27 @@ export default function Sidebar() {
             )
           })}
         </nav>
+
+        {/* Login/Logout Button */}
+        <div className="absolute bottom-4 left-4 right-4">
+          {user ? (
+            <button 
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-red-600/20 text-red-400 hover:bg-red-600/30 transition"
+            >
+              <LogOut size={20} />
+              Logout
+            </button>
+          ) : (
+            <Link 
+              href="/login"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-cyan-600/20 text-cyan-400 hover:bg-cyan-600/30 transition"
+            >
+              <LogIn size={20} />
+              Login
+            </Link>
+          )}
+        </div>
       </div>
     </>
   )
