@@ -108,7 +108,7 @@ export default function ClientsPage() {
         </select>
       </div>
 
-      <div className="overflow-x-auto bg-slate-800 rounded-xl border border-slate-700">
+            <div className="overflow-x-auto bg-gradient-to-br from-blue-600/20 to-purple-600/20 backdrop-blur-sm rounded-xl border border-white/10">
         <table className="w-full text-left">
           <thead className="bg-slate-900 text-slate-400 uppercase text-xs">
             <tr>
