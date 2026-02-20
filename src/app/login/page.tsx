@@ -25,25 +25,15 @@ export default function LoginPage() {
       setError(error.message)
       setLoading(false)
     } else {
-      window.location.href = '/'
+      setTimeout(() => {
+  window.location.href = '/'
+}, 500)
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative">
-      {/* Background Logo */}
-      <div 
-        className="fixed inset-0 pointer-events-none z-0"
-        style={{
-          backgroundImage: "url('/logo.png')",
-          backgroundSize: '1000px',
-          backgroundRepeat: 'no-repeat',
-          backgroundPosition: 'center',
-          opacity: 0.08,
-        }}
-      />
-
-      <div className="relative z-10 w-full max-w-md p-8 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10">
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="w-full max-w-md p-8">
         <h1 className="text-3xl font-bold text-center text-white mb-2">Welcome Back</h1>
         <p className="text-slate-400 text-center mb-8">Sign in to your account</p>
 
@@ -55,31 +45,29 @@ export default function LoginPage() {
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-sm text-slate-400 mb-1">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-slate-800/50 border border-slate-600 rounded-lg p-3 text-white"
-              placeholder="your@email.com"
+              className="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-white"
+              placeholder="Email"
               required
             />
           </div>
           <div>
-            <label className="block text-sm text-slate-400 mb-1">Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-slate-800/50 border border-slate-600 rounded-lg p-3 text-white"
-              placeholder="••••••••"
+              className="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-white"
+              placeholder="Password"
               required
             />
           </div>
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 rounded-lg transition disabled:opacity-50"
+            className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 rounded-lg"
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
@@ -90,8 +78,8 @@ export default function LoginPage() {
             Forgot Password?
           </Link>
           <p className="text-slate-400 text-sm">
-            Don't have an account?{' '}
-            <Link href="/signup" className="text-cyan-400 hover:text-cyan-300 font-bold">
+            No account?{' '}
+            <Link href="/signup" className="text-cyan-400 font-bold">
               Sign Up
             </Link>
           </p>
