@@ -9,34 +9,36 @@ body {
   color: var(--foreground);
   background: var(--background);
 }
-/* Make date picker input visible */
-input[type="date"] {
-  color-scheme: dark;
-  background-color: #1e293b;
-  border: 1px solid #475569;
-  padding: 8px;
-  border-radius: 8px;
-  color: white;
-}
-
-/* Calendar dropdown background */
+/* Date Picker Styles */
 input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(1);
   cursor: pointer;
 }
-/* Fix calendar text color */
+
 .rdp {
-  --rdp-cell-size: 36px;
-  --rdp-accent-color: #06b6d4; /* Cyan color */
+  --rdp-accent-color: #06b6d4;
   --rdp-background-color: #e0f2fe;
-  margin: 0;
+  background-color: white !important;
+  padding: 10px;
+  border-radius: 8px;
+  color: black !important;
 }
 
-.rdp-day_selected:not([disabled]) { 
+.rdp-caption,
+.rdp-head_cell,
+.rdp-cell,
+.rdp-day,
+.rdp-month_caption,
+.rdp-year_caption,
+.rdp-nav_button {
+  color: black !important;
+}
+
+.rdp-day_selected:not([disabled]) {
   background-color: #06b6d4 !important;
   color: white !important;
 }
 
-.rdp-day:hover:not([disabled]) {
+.rdp-day:hover:not([disabled]):not(.rdp-day_selected) {
   background-color: #f1f5f9 !important;
 }

@@ -8,7 +8,6 @@ export default function DatePicker({ value, onChange }) {
   const [show, setShow] = useState(false)
   const wrapperRef = useRef(null)
 
-  // Close when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
@@ -21,7 +20,6 @@ export default function DatePicker({ value, onChange }) {
 
   return (
     <div className="relative" ref={wrapperRef}>
-      {/* Input Field */}
       <div className="relative">
         <input
           type="text"
@@ -37,7 +35,6 @@ export default function DatePicker({ value, onChange }) {
         />
       </div>
 
-      {/* Calendar Popup */}
       {show && (
         <div className="absolute z-50 mt-2 bg-white rounded-lg shadow-xl p-2">
           <DayPicker
@@ -49,11 +46,7 @@ export default function DatePicker({ value, onChange }) {
               }
               setShow(false)
             }}
-            styles={{
-              caption: { color: 'black' },
-              head_cell: { color: 'black' },
-              day: { color: 'black' }
-            }}
+            className="bg-white text-black"
           />
         </div>
       )}

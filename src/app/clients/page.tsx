@@ -28,13 +28,16 @@ export default function ClientsPage() {
     setPlans(planRes.data || [])
   }
 
+  // Auto-calculate status based on due_date
   const getAutoStatus = (client: any) => {
   if (!client.due_date) return { text: 'Active', color: 'bg-green-500/10 text-green-500' }
   
   const today = new Date()
   const dueDate = new Date(client.due_date)
   
+  // If due date is today or past = Unpaid
   if (dueDate <= today) {
+    // Check if more than 30 days overdue
     const daysOverdue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
     if (daysOverdue > 30) {
       return { text: 'Unsettled', color: 'bg-orange-500/10 text-orange-500' }
@@ -42,6 +45,7 @@ export default function ClientsPage() {
     return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
   }
   
+  // If due date is future = Active
   return { text: 'Active', color: 'bg-green-500/10 text-green-500' }
 }
 
@@ -84,10 +88,6 @@ export default function ClientsPage() {
     })
     setEditId(client.id)
     setShowModal(true)
-  }
-
-  const handleDateChange = (date: string) => {
-    setFormData({...formData, due_date: date})
   }
 
   return (
@@ -177,11 +177,8 @@ export default function ClientsPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Due Date</label>
-                <DatePicker 
-                  value={formData.due_date} 
-                  onChange={handleDateChange}
-                />
+                <label className="block text-sm text-slate-400 mb-1">Due Date (Leave empty = Active)</label>
+                <input type="date" className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white" value={formData.due_date} onChange={e => setFormData({...formData, due_date: e.target.value})} />
               </div>
               <div>
                 <label className="block text-sm text-slate-400 mb-1">Notes</label>
