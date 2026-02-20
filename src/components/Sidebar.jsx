@@ -2,17 +2,17 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Users, Calendar, MapPin, Settings, Menu, X, Tag, LogIn, LogOut, User } from 'lucide-react'
+import { Home, Users, Calendar, MapPin, Settings, Menu, X, Tag, LogIn, LogOut } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
 
 export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false)
   const pathname = usePathname()
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState(null)
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user)
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
