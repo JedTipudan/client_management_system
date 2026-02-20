@@ -22,16 +22,23 @@ export default function ClientsPage() {
   useEffect(() => { fetchData() }, [])
 
   const fetchData = async () => {
-    // Fetch from locations table AND clients table
-    const [clientsRes, planRes, locRes] = await Promise.all([
-      supabase.from('clients').select('*, plans(name, price)'),
-      supabase.from('plans').select('*'),
-      supabase.from('locations').select('*').order('name')
-    ])
-    
-    setClients(clientsRes.data || [])
-    setPlans(planRes.data || [])
-    setLocations(locRes.data || [])
+    try {
+      const clientsRes = await supabase.from('clients').select('*, plans(name, price)')
+      const planRes = await supabase.from('plans').select('*')
+      const locRes = await supabase.from('locations').select('*').order('name')
+      
+      console.log("Locations response:", locRes) // Check this in browser console
+      
+      if (locRes.error) {
+        console.error("Locations error:", locRes.error)
+      }
+      
+      setClients(clientsRes.data || [])
+      setPlans(planRes.data || [])
+      setLocations(locRes.data || [])
+    } catch (error) {
+      console.error("Fetch error:", error)
+    }
   }
 
   const getAutoStatus = (client: any) => {
