@@ -9,3 +9,18 @@ body {
   color: var(--foreground);
   background: var(--background);
 }
+/* Make date picker input visible */
+input[type="date"] {
+  color-scheme: dark;
+  background-color: #1e293b;
+  border: 1px solid #475569;
+  padding: 8px;
+  border-radius: 8px;
+  color: white;
+}
+
+/* Calendar dropdown background */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
