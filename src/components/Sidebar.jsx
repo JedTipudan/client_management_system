@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Home, Users, Calendar, MapPin } from 'lucide-react'
+import { Home, Users, Calendar, MapPin, Settings } from 'lucide-react'
 
 export default function Sidebar() {
   return (
@@ -17,6 +17,9 @@ export default function Sidebar() {
         </Link>
         <Link href="/locations" className="flex items-center gap-3 px-4 py-2 text-gray-300 hover:bg-slate-800 rounded-lg">
           <MapPin size={20} /> Locations
+        </Link>
+        <Link href="/settings" className="flex items-center gap-3 px-4 py-2 text-gray-300 hover:bg-slate-800 rounded-lg">
+          <Settings size={20} /> Settings
         </Link>
       </nav>
     </div>
