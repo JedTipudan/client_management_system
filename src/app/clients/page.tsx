@@ -1,8 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
-import { Plus, Search, Edit, Trash2, X } from 'lucide-react'
-
+import { Plus, Search, Edit, Trash2, X, CheckCircle } from 'lucide-react'
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<any[]>([])
@@ -22,23 +21,15 @@ export default function ClientsPage() {
   useEffect(() => { fetchData() }, [])
 
   const fetchData = async () => {
-    try {
-      const clientsRes = await supabase.from('clients').select('*, plans(name, price)')
-      const planRes = await supabase.from('plans').select('*')
-      const locRes = await supabase.from('locations').select('*').order('name')
-      
-      console.log("Locations response:", locRes) // Check this in browser console
-      
-      if (locRes.error) {
-        console.error("Locations error:", locRes.error)
-      }
-      
-      setClients(clientsRes.data || [])
-      setPlans(planRes.data || [])
-      setLocations(locRes.data || [])
-    } catch (error) {
-      console.error("Fetch error:", error)
-    }
+    const [clientsRes, planRes, locRes] = await Promise.all([
+      supabase.from('clients').select('*, plans(name, price)'),
+      supabase.from('plans').select('*'),
+      supabase.from('locations').select('*').order('name')
+    ])
+    
+    setClients(clientsRes.data || [])
+    setPlans(planRes.data || [])
+    setLocations(locRes.data || [])
   }
 
   const getAutoStatus = (client: any) => {
@@ -57,6 +48,25 @@ export default function ClientsPage() {
   
   return { text: 'Active', color: 'bg-green-500/10 text-green-500' }
 }
+
+  // Auto advance due date by 1 month
+  const handleMarkAsPaid = async (client: any) => {
+    if (!client.due_date) {
+      alert("This client has no due date to advance")
+      return
+    }
+
+    const currentDueDate = new Date(client.due_date)
+    const newDueDate = new Date(currentDueDate)
+    newDueDate.setMonth(newDueDate.getMonth() + 1)
+
+    const newDueDateStr = newDueDate.toISOString().split('T')[0]
+
+    if (confirm(`Mark as paid?\nDue date will advance from ${client.due_date} to ${newDueDateStr}`)) {
+      await supabase.from('clients').update({ due_date: newDueDateStr }).eq('id', client.id)
+      fetchData()
+    }
+  }
 
   const filteredClients = clients
     .filter(c => locFilter === 'All' || c.location === locFilter)
@@ -95,10 +105,6 @@ export default function ClientsPage() {
     })
     setEditId(client.id)
     setShowModal(true)
-  }
-
-  const handleDateChange = (date: string) => {
-    setFormData({...formData, due_date: date})
   }
 
   return (
@@ -150,6 +156,13 @@ export default function ClientsPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
+                    <button 
+                      onClick={() => handleMarkAsPaid(client)} 
+                      className="text-green-400 hover:text-green-300 mr-3"
+                      title="Mark as Paid (Advance Due Date)"
+                    >
+                      <CheckCircle size={18} />
+                    </button>
                     <button onClick={() => openEdit(client)} className="text-cyan-400 hover:text-cyan-300 mr-3"><Edit size={18} /></button>
                     <button onClick={() => handleDelete(client.id)} className="text-red-400 hover:text-red-300"><Trash2 size={18} /></button>
                   </td>
@@ -191,14 +204,14 @@ export default function ClientsPage() {
                 </select>
               </div>
               <div>
-  <label className="block text-sm text-slate-400 mb-1">Due Date</label>
-  <input 
-    type="date" 
-    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white"
-    value={formData.due_date} 
-    onChange={e => setFormData({...formData, due_date: e.target.value})}
-  />
-</div>
+                <label className="block text-sm text-slate-400 mb-1">Due Date</label>
+                <input 
+                  type="date" 
+                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white"
+                  value={formData.due_date} 
+                  onChange={e => setFormData({...formData, due_date: e.target.value})}
+                />
+              </div>
               <div>
                 <label className="block text-sm text-slate-400 mb-1">Notes</label>
                 <textarea className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white" rows={3} value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})}></textarea>
