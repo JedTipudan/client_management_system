@@ -46,7 +46,7 @@ export default function LocationsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {locations.map((loc: any) => (
-          <div key={loc.id} className="bg-white/5 backdrop-blur-sm backdrop-blur-sm p-6 rounded-xl border border-white/10">
+          <div key={loc.id} className="bg-transparent backdrop-blur-sm backdrop-blur-sm p-6 rounded-xl border border-white/10">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-cyan-600/20 rounded-lg">
