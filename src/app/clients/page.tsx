@@ -49,26 +49,31 @@ export default function ClientsPage() {
   return { text: 'Active', color: 'bg-green-500/10 text-green-500' }
 }
 
-    // Auto advance due date by 1 month
+      // Auto advance due date by exactly 1 month (same day)
   const handleMarkAsPaid = async (client: any) => {
     if (!client.due_date) {
       alert("This client has no due date to advance")
       return
     }
 
-    // Parse the date manually to avoid timezone issues
+    // Split the date
     const [year, month, day] = client.due_date.split('-').map(Number)
     
-    // Create date in local timezone
-    const currentDueDate = new Date(year, month - 1, day)
-    const newDueDate = new Date(year, month - 1, day)
-    newDueDate.setMonth(newDueDate.getMonth() + 1)
+    // Calculate new month and year
+    let newMonth = month + 1
+    let newYear = year
+    
+    if (newMonth > 12) {
+      newMonth = 1
+      newYear = year + 1
+    }
 
-    // Format as YYYY-MM-DD manually
-    const newYear = newDueDate.getFullYear()
-    const newMonth = String(newDueDate.getMonth() + 1).padStart(2, '0')
-    const newDay = String(newDueDate.getDate()).padStart(2, '0')
-    const newDueDateStr = `${newYear}-${newMonth}-${newDay}`
+    // Handle months with fewer days (e.g., Jan 31 -> Feb 28)
+    const daysInMonth = new Date(newYear, newMonth, 0).getDate()
+    const finalDay = Math.min(day, daysInMonth)
+
+    // Format as YYYY-MM-DD
+    const newDueDateStr = `${newYear}-${String(newMonth).padStart(2, '0')}-${String(finalDay).padStart(2, '0')}`
 
     if (confirm(`Mark as paid?\nDue date will advance from ${client.due_date} to ${newDueDateStr}`)) {
       await supabase.from('clients').update({ due_date: newDueDateStr }).eq('id', client.id)
