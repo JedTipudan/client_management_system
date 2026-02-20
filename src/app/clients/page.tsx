@@ -22,17 +22,16 @@ export default function ClientsPage() {
   useEffect(() => { fetchData() }, [])
 
   const fetchData = async () => {
-    const [clientsRes, planRes] = await Promise.all([
+    // Fetch from locations table AND clients table
+    const [clientsRes, planRes, locRes] = await Promise.all([
       supabase.from('clients').select('*, plans(name, price)'),
-      supabase.from('plans').select('*')
+      supabase.from('plans').select('*'),
+      supabase.from('locations').select('*').order('name')
     ])
-    
-    // Get unique locations from existing clients
-    const uniqueLocs = [...new Set(clientsRes.data?.map(c => c.location).filter(Boolean))]
-    setLocations(uniqueLocs || [])
     
     setClients(clientsRes.data || [])
     setPlans(planRes.data || [])
+    setLocations(locRes.data || [])
   }
 
   const getAutoStatus = (client: any) => {
@@ -111,7 +110,7 @@ export default function ClientsPage() {
         </div>
         <select className="bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-white" onChange={e => setLocFilter(e.target.value)}>
           <option value="All">All Locations</option>
-          {locations.map((loc: any) => <option key={loc} value={loc}>{loc}</option>)}
+          {locations.map((loc: any) => <option key={loc.id} value={loc.name}>{loc.name}</option>)}
         </select>
       </div>
 
@@ -174,7 +173,7 @@ export default function ClientsPage() {
                 <label className="block text-sm text-slate-400 mb-1">Location *</label>
                 <select className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})}>
                   <option value="">Select</option>
-                  {locations.map((loc: any) => <option key={loc} value={loc}>{loc}</option>)}
+                  {locations.map((loc: any) => <option key={loc.id} value={loc.name}>{loc.name}</option>)}
                 </select>
               </div>
               <div>
