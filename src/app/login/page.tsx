@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '../../lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
@@ -16,11 +16,6 @@ export default function LoginPage() {
     setLoading(true)
     setMessage('')
 
-    const supabase = createClient(
-      'https://brbbqmgljfgkratnpbon.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyYmJxbWdsamZna3JhdG5wYm9uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1NDAxMDUsImV4cCI6MjA4NzExNjEwNX0.RoypBYG7InE5ry6lJBDjKMOYHJ0KBYXFAqpSke-qRYY'
-    )
-
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -28,7 +23,7 @@ export default function LoginPage() {
 
     if (error) {
       setMessage('Error: ' + error.message)
-    } else {
+    } else if (data.user) {
       setMessage('Success! Redirecting...')
       router.push('/')
     }
