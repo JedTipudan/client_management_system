@@ -31,7 +31,7 @@ export default function RootLayout({
                 className="fixed inset-0 pointer-events-none z-0"
                 style={{
                   backgroundImage: "url('/logo.png')",
-                  backgroundSize: '400px',
+                  backgroundSize: '1000px',
                   backgroundRepeat: 'no-repeat',
                   backgroundPosition: 'center',
                   opacity: 0.08,
