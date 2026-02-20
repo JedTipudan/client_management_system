@@ -9,6 +9,20 @@ export default function DueDatesPage() {
   const [locFilter, setLocFilter] = useState('All')
   const [processingId, setProcessingId] = useState<string | null>(null)
 
+  // --- Admin Logic ---
+  const [user, setUser] = useState<any>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      const userData = data.user
+      setUser(userData)
+      if (userData?.email) {
+        setIsAdmin(['ronnelpaciano.1986@gmail.com'].includes(userData.email.toLowerCase()))
+      }
+    })
+  }, [])
+
   useEffect(() => { 
     fetchData() 
   }, [])
@@ -52,14 +66,12 @@ export default function DueDatesPage() {
     unsettled: clients.filter(c => getStatus(c) === 'unsettled').length,
   }
 
-    // --- MARK AS PAID FUNCTION ---
+  // --- MARK AS PAID FUNCTION ---
   const handleMarkAsPaid = async (client: any) => {
     if (!client.due_date) return
 
-    // Get current year, month, day
     const [year, month, day] = client.due_date.split('-').map(Number)
     
-    // Calculate next month (same day)
     let newMonth = month + 1
     let newYear = year
     
@@ -68,13 +80,8 @@ export default function DueDatesPage() {
       newYear = year + 1
     }
 
-    // Get days in new month
     const daysInNewMonth = new Date(newYear, newMonth, 0).getDate()
-    
-    // Use same day, but don't exceed days in new month
     const finalDay = Math.min(day, daysInNewMonth)
-
-    // Format as YYYY-MM-DD
     const newDueDateStr = `${newYear}-${String(newMonth).padStart(2, '0')}-${String(finalDay).padStart(2, '0')}`
 
     if (!confirm(`Mark as paid?\nDue date will advance from ${client.due_date} to ${newDueDateStr}`)) return
@@ -165,8 +172,8 @@ export default function DueDatesPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    {/* BUTTON: Only show if NOT paid */}
-                    {status !== 'paid' && (
+                    {/* Admin Only: Mark Paid Button */}
+                    {isAdmin && status !== 'paid' && (
                       <button 
                         onClick={() => handleMarkAsPaid(client)}
                         disabled={isProcessing}

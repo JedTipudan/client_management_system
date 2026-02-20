@@ -9,6 +9,20 @@ export default function PlansPage() {
   const [formData, setFormData] = useState({ name: '', price: '' })
   const [editId, setEditId] = useState<any>(null)
 
+  // --- Admin Logic ---
+  const [user, setUser] = useState<any>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      const userData = data.user
+      setUser(userData)
+      if (userData?.email) {
+        setIsAdmin(['ronnelpaciano.1986@gmail.com'].includes(userData.email.toLowerCase()))
+      }
+    })
+  }, [])
+
   useEffect(() => { fetchPlans() }, [])
 
   const fetchPlans = async () => {
@@ -52,9 +66,13 @@ export default function PlansPage() {
     <div>
       <div className="flex flex-col md:flex-row justify-between mb-6 gap-4">
         <h2 className="text-3xl font-bold">Plans</h2>
-        <button onClick={() => { setEditId(null); setFormData({ name: '', price: '' }); setShowModal(true) }} className="bg-cyan-600 hover:bg-cyan-700 px-4 py-2 rounded-lg flex items-center gap-2 font-semibold">
-          <Plus size={20} /> Add Plan
-        </button>
+        
+        {/* Admin Only: Add Button */}
+        {isAdmin && (
+          <button onClick={() => { setEditId(null); setFormData({ name: '', price: '' }); setShowModal(true) }} className="bg-cyan-600 hover:bg-cyan-700 px-4 py-2 rounded-lg flex items-center gap-2 font-semibold">
+            <Plus size={20} /> Add Plan
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -70,14 +88,18 @@ export default function PlansPage() {
                   <p className="text-cyan-400 font-bold text-xl">₱{plan.price}</p>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <button onClick={() => openEdit(plan)} className="text-cyan-400 hover:text-cyan-300">
-                  <Edit size={18} />
-                </button>
-                <button onClick={() => handleDelete(plan.id)} className="text-red-400 hover:text-red-300">
-                  <Trash2 size={18} />
-                </button>
-              </div>
+              
+              {/* Admin Only: Edit & Delete Buttons */}
+              {isAdmin && (
+                <div className="flex gap-2">
+                  <button onClick={() => openEdit(plan)} className="text-cyan-400 hover:text-cyan-300">
+                    <Edit size={18} />
+                  </button>
+                  <button onClick={() => handleDelete(plan.id)} className="text-red-400 hover:text-red-300">
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         ))}

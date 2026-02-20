@@ -29,7 +29,7 @@ export default function ClientsPage() {
       const userData = data.user
       setUser(userData)
       if (userData?.email) {
-        setIsAdmin(['your-admin-email@example.com'].includes(userData.email.toLowerCase()))
+        setIsAdmin(['ronnelpaciano.1986@gmail.com'].includes(userData.email.toLowerCase()))
       }
     })
   }, [])

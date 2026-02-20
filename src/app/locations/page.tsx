@@ -8,6 +8,20 @@ export default function LocationsPage() {
   const [showModal, setShowModal] = useState(false)
   const [formData, setFormData] = useState({ name: '' })
 
+  // --- Admin Logic ---
+  const [user, setUser] = useState<any>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      const userData = data.user
+      setUser(userData)
+      if (userData?.email) {
+        setIsAdmin(['ronnelpaciano.1986@gmail.com'].includes(userData.email.toLowerCase()))
+      }
+    })
+  }, [])
+
   useEffect(() => { fetchLocations() }, [])
 
   const fetchLocations = async () => {
@@ -39,12 +53,16 @@ export default function LocationsPage() {
     <div>
       <div className="flex flex-col md:flex-row justify-between mb-6 gap-4">
         <h2 className="text-3xl font-bold">Locations</h2>
-        <button onClick={() => { setFormData({ name: '' }); setShowModal(true) }} className="bg-cyan-600 hover:bg-cyan-700 px-4 py-2 rounded-lg flex items-center gap-2 font-semibold">
-          <Plus size={20} /> Add Location
-        </button>
+        
+        {/* Admin Only: Add Button */}
+        {isAdmin && (
+          <button onClick={() => { setFormData({ name: '' }); setShowModal(true) }} className="bg-cyan-600 hover:bg-cyan-700 px-4 py-2 rounded-lg flex items-center gap-2 font-semibold">
+            <Plus size={20} /> Add Location
+          </button>
+        )}
       </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {locations.map((loc: any) => (
           <div key={loc.id} className="bg-transparent backdrop-blur-sm backdrop-blur-sm p-6 rounded-xl border border-white/10">
             <div className="flex items-center justify-between">
@@ -57,9 +75,13 @@ export default function LocationsPage() {
                   <p className="text-slate-400 text-sm">Location</p>
                 </div>
               </div>
-              <button onClick={() => handleDelete(loc.id)} className="text-red-400 hover:text-red-300">
-                <Trash2 size={18} />
-              </button>
+              
+              {/* Admin Only: Delete Button */}
+              {isAdmin && (
+                <button onClick={() => handleDelete(loc.id)} className="text-red-400 hover:text-red-300">
+                  <Trash2 size={18} />
+                </button>
+              )}
             </div>
           </div>
         ))}
