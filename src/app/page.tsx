@@ -34,12 +34,15 @@ export default function Dashboard() {
     .filter(c => c.due_date && c.due_date >= todayStr && c.due_date <= nextWeek.toISOString().split('T')[0])
     .slice(0, 5)
 
+  // Replace the return section with gradient cards
+
   return (
     <div>
       <h2 className="text-3xl font-bold mb-8">Dashboard Overview</h2>
 
+      {/* Stats Cards with gradient so logo shows through */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="p-6 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl text-white">
+        <div className="p-6 bg-gradient-to-br from-blue-600/80 to-blue-700/80 backdrop-blur-sm rounded-xl text-white border border-white/10">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-blue-100 text-sm">Total Clients</p>
@@ -51,7 +54,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="p-6 bg-gradient-to-br from-green-600 to-green-700 rounded-xl text-white">
+        <div className="p-6 bg-gradient-to-br from-green-600/80 to-green-700/80 backdrop-blur-sm rounded-xl text-white border border-white/10">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-green-100 text-sm">Active</p>
@@ -63,7 +66,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="p-6 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl text-white">
+        <div className="p-6 bg-gradient-to-br from-yellow-500/80 to-yellow-600/80 backdrop-blur-sm rounded-xl text-white border border-white/10">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-yellow-100 text-sm">Due Today</p>
@@ -75,7 +78,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="p-6 bg-gradient-to-br from-red-500 to-red-600 rounded-xl text-white">
+        <div className="p-6 bg-gradient-to-br from-red-500/80 to-red-600/80 backdrop-blur-sm rounded-xl text-white border border-white/10">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-red-100 text-sm">Overdue</p>
@@ -88,6 +91,7 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Quick Actions */}
       <div className="flex gap-4 mb-8">
         <Link href="/clients" className="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 px-6 py-3 rounded-lg font-semibold transition">
           <Plus size={20} /> Add Client
@@ -98,14 +102,15 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
+        {/* Recent Clients - with gradient */}
+        <div className="bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-sm rounded-xl border border-white/10 p-6">
           <h3 className="text-xl font-bold mb-4">Recent Clients</h3>
           {recentClients.length === 0 ? (
             <p className="text-slate-500">No clients yet</p>
           ) : (
             <div className="space-y-3">
               {recentClients.map((client: any) => (
-                <div key={client.id} className="flex justify-between items-center p-3 bg-slate-700/50 rounded-lg">
+                <div key={client.id} className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
                   <div>
                     <p className="font-medium">{client.client_name}</p>
                     <p className="text-sm text-slate-400">{client.location}</p>
@@ -117,14 +122,15 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
+        {/* Upcoming Due Dates - with gradient */}
+        <div className="bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-sm rounded-xl border border-white/10 p-6">
           <h3 className="text-xl font-bold mb-4">Upcoming Due Dates</h3>
           {upcomingDue.length === 0 ? (
             <p className="text-slate-500">No upcoming due dates</p>
           ) : (
             <div className="space-y-3">
               {upcomingDue.map((client: any) => (
-                <div key={client.id} className="flex justify-between items-center p-3 bg-slate-700/50 rounded-lg">
+                <div key={client.id} className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
                   <div>
                     <p className="font-medium">{client.client_name}</p>
                     <p className="text-sm text-slate-400">{client.location}</p>
