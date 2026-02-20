@@ -52,26 +52,42 @@ export default function DueDatesPage() {
     unsettled: clients.filter(c => getStatus(c) === 'unsettled').length,
   }
 
-  // --- MARK AS PAID FUNCTION ---
-  const handleMarkAsPaid = async (id: string) => {
-    if (!confirm('Mark this client as paid? Due date will be moved to next month.')) return
+    // --- MARK AS PAID FUNCTION ---
+  const handleMarkAsPaid = async (client: any) => {
+    if (!client.due_date) return
+
+    // Get current year, month, day
+    const [year, month, day] = client.due_date.split('-').map(Number)
     
-    setProcessingId(id)
+    // Calculate next month (same day)
+    let newMonth = month + 1
+    let newYear = year
     
-    // Move due date 30 days forward
-    const nextDate = new Date()
-    nextDate.setDate(nextDate.getDate() + 30)
+    if (newMonth > 12) {
+      newMonth = 1
+      newYear = year + 1
+    }
+
+    // Get days in new month
+    const daysInNewMonth = new Date(newYear, newMonth, 0).getDate()
+    
+    // Use same day, but don't exceed days in new month
+    const finalDay = Math.min(day, daysInNewMonth)
+
+    // Format as YYYY-MM-DD
+    const newDueDateStr = `${newYear}-${String(newMonth).padStart(2, '0')}-${String(finalDay).padStart(2, '0')}`
+
+    if (!confirm(`Mark as paid?\nDue date will advance from ${client.due_date} to ${newDueDateStr}`)) return
+    
+    setProcessingId(client.id)
     
     const { error } = await supabase
       .from('clients')
-      .update({ 
-        due_date: nextDate.toISOString().split('T')[0],
-        updated_at: new Date()
-      })
-      .eq('id', id)
+      .update({ due_date: newDueDateStr })
+      .eq('id', client.id)
 
     if (!error) {
-      fetchData() // Refresh the list
+      fetchData()
     } else {
       alert("Error: " + error.message)
     }
@@ -152,7 +168,7 @@ export default function DueDatesPage() {
                     {/* BUTTON: Only show if NOT paid */}
                     {status !== 'paid' && (
                       <button 
-                        onClick={() => handleMarkAsPaid(client.id)}
+                        onClick={() => handleMarkAsPaid(client)}
                         disabled={isProcessing}
                         className="inline-flex items-center gap-1 px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold rounded disabled:opacity-50"
                       >
