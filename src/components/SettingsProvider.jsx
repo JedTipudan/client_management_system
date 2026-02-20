@@ -16,6 +16,19 @@ export default function SettingsProvider({ children }) {
       document.documentElement.style.fontSize = 
         settings.fontSize === 'small' ? '14px' : 
         settings.fontSize === 'large' ? '18px' : '16px'
+      
+      // Apply accent color
+      const colors = {
+        cyan: '#06b6d4',
+        blue: '#3b82f6',
+        green: '#22c55e',
+        purple: '#a855f7',
+        orange: '#f97316',
+        red: '#ef4444'
+      }
+      const accentColor = colors[settings.accentColor] || colors.cyan
+      document.documentElement.style.setProperty('--accent', accentColor)
+      document.documentElement.style.setProperty('--accent-bg', accentColor + '20')
     }
   }, [])
 
