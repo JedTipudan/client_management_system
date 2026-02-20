@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { supabase } from '../../lib/supabaseClient'
+import { createClient } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
@@ -8,93 +8,72 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
   const router = useRouter()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    setError('')
+    setMessage('')
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const supabase = createClient(
+      'https://brbbqmgljfgkratnpbon.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyYmJxbWdsamZna3JhdG5wYm9uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1NDAxMDUsImV4cCI6MjA4NzExNjEwNX0.RoypBYG7InE5ry6lJBDjKMOYHJ0KBYXFAqpSke-qRYY'
+    )
+
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
 
     if (error) {
-      setError(error.message)
-      setLoading(false)
+      setMessage('Error: ' + error.message)
     } else {
+      setMessage('Success! Redirecting...')
       router.push('/')
     }
+    setLoading(false)
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative">
-      {/* Background Logo */}
-      <div 
-        className="fixed inset-0 pointer-events-none z-0"
-        style={{
-          backgroundImage: "url('/logo.png')",
-          backgroundSize: '1000px',
-          backgroundRepeat: 'no-repeat',
-          backgroundPosition: 'center',
-          opacity: 0.08,
-        }}
-      />
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="w-full max-w-md p-8">
+        <h1 className="text-3xl font-bold text-center text-white mb-8">Login</h1>
 
-      <div className="relative z-10 w-full max-w-md p-8 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10">
-        <h1 className="text-3xl font-bold text-center text-white mb-2">Welcome Back</h1>
-        <p className="text-slate-400 text-center mb-8">Sign in to your account</p>
-
-        {error && (
-          <div className="bg-red-500/20 text-red-400 p-3 rounded-lg mb-4 text-sm">
-            {error}
+        {message && (
+          <div className={`p-3 rounded-lg mb-4 text-sm ${message.includes('Success') ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+            {message}
           </div>
         )}
 
         <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="block text-sm text-slate-400 mb-1">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-slate-800/50 border border-slate-600 rounded-lg p-3 text-white"
-              placeholder="your@email.com"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-slate-400 mb-1">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-slate-800/50 border border-slate-600 rounded-lg p-3 text-white"
-              placeholder="••••••••"
-              required
-            />
-          </div>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-white"
+            placeholder="Email"
+            required
+          />
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-white"
+            placeholder="Password"
+            required
+          />
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 rounded-lg transition disabled:opacity-50"
+            className="w-full bg-cyan-600 text-white font-bold py-3 rounded-lg"
           >
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? 'Loading...' : 'Login'}
           </button>
         </form>
 
-        <div className="mt-6 text-center space-y-2">
-          <Link href="/forgot-password" className="block text-slate-400 hover:text-cyan-400 text-sm">
-            Forgot Password?
-          </Link>
-          <p className="text-slate-400 text-sm">
-            Don't have an account?{' '}
-            <Link href="/signup" className="text-cyan-400 hover:text-cyan-300 font-bold">
-              Sign Up
-            </Link>
-          </p>
+        <div className="mt-6 text-center">
+          <Link href="/signup" className="text-cyan-400">Sign Up</Link>
         </div>
       </div>
     </div>
