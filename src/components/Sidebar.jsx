@@ -3,6 +3,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Home, Users, Calendar, MapPin, Settings, Menu, X } from 'lucide-react'
+import { Home, Users, Calendar, MapPin, Settings, Menu, X, Tag } from 'lucide-react'
 
 export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false)
@@ -14,6 +15,7 @@ export default function Sidebar() {
     { href: '/due-dates', icon: Calendar, label: 'Due Dates' },
     { href: '/locations', icon: MapPin, label: 'Locations' },
     { href: '/settings', icon: Settings, label: 'Settings' },
+    { href: '/plans', icon: Tag, label: 'Plans' },
   ]
 
   return (
