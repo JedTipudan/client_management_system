@@ -1,7 +1,6 @@
 'use client'
 import { useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 export default function LoginPage() {
@@ -9,7 +8,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
-  const router = useRouter()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -23,11 +21,11 @@ export default function LoginPage() {
 
     if (error) {
       setMessage('Error: ' + error.message)
+      setLoading(false)
     } else if (data.user) {
-      setMessage('Success! Redirecting...')
-      router.push('/')
+      setMessage('Login successful!')
+      window.location.href = '/'
     }
-    setLoading(false)
   }
 
   return (
@@ -36,7 +34,7 @@ export default function LoginPage() {
         <h1 className="text-3xl font-bold text-center text-white mb-8">Login</h1>
 
         {message && (
-          <div className={`p-3 rounded-lg mb-4 text-sm ${message.includes('Success') ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+          <div className={`p-3 rounded-lg mb-4 text-sm ${message.includes('successful') ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
             {message}
           </div>
         )}
@@ -44,6 +42,7 @@ export default function LoginPage() {
         <form onSubmit={handleLogin} className="space-y-4">
           <input
             type="email"
+            name="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-white"
@@ -52,6 +51,7 @@ export default function LoginPage() {
           />
           <input
             type="password"
+            name="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-white"
