@@ -138,8 +138,8 @@ export default function DueDatesPage() {
         <button onClick={() => setStatusFilter('unsettled')} className={`px-4 py-2 rounded-lg ${statusFilter === 'unsettled' ? 'bg-orange-600' : 'bg-slate-700'}`}>Unsettled</button>
       </div>
 
-      {/* Table */}
-            <div className="bg-transparent backdrop-blur-sm backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden">
+      {/* Table - Changed overflow-hidden to overflow-x-auto */}
+      <div className="overflow-x-auto bg-transparent backdrop-blur-sm rounded-xl border border-white/10">
         <table className="w-full text-left">
           <thead className="bg-slate-900 text-slate-400 uppercase text-xs">
             <tr>
