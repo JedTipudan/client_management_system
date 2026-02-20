@@ -1,27 +1,69 @@
+'use client'
+import { useState } from 'react'
 import Link from 'next/link'
-import { Home, Users, Calendar, MapPin, Settings } from 'lucide-react'
+import { usePathname } from 'next/navigation'
+import { Home, Users, Calendar, MapPin, Settings, Menu, X } from 'lucide-react'
 
 export default function Sidebar() {
+  const [isOpen, setIsOpen] = useState(false)
+  const pathname = usePathname()
+
+  const navItems = [
+    { href: '/', icon: Home, label: 'Dashboard' },
+    { href: '/clients', icon: Users, label: 'Clients' },
+    { href: '/due-dates', icon: Calendar, label: 'Due Dates' },
+    { href: '/locations', icon: MapPin, label: 'Locations' },
+    { href: '/settings', icon: Settings, label: 'Settings' },
+  ]
+
   return (
-    <div className="w-64 bg-slate-900 min-h-screen p-4">
-      <h1 className="text-xl font-bold text-white mb-8">WiFi Manager</h1>
-      <nav className="space-y-2">
-        <Link href="/" className="flex items-center gap-3 px-4 py-2 text-gray-300 hover:bg-slate-800 rounded-lg">
-          <Home size={20} /> Dashboard
-        </Link>
-        <Link href="/clients" className="flex items-center gap-3 px-4 py-2 text-gray-300 hover:bg-slate-800 rounded-lg">
-          <Users size={20} /> Clients
-        </Link>
-        <Link href="/due-dates" className="flex items-center gap-3 px-4 py-2 text-gray-300 hover:bg-slate-800 rounded-lg">
-          <Calendar size={20} /> Due Dates
-        </Link>
-        <Link href="/locations" className="flex items-center gap-3 px-4 py-2 text-gray-300 hover:bg-slate-800 rounded-lg">
-          <MapPin size={20} /> Locations
-        </Link>
-        <Link href="/settings" className="flex items-center gap-3 px-4 py-2 text-gray-300 hover:bg-slate-800 rounded-lg">
-          <Settings size={20} /> Settings
-        </Link>
-      </nav>
-    </div>
+    <>
+      {/* Mobile Menu Button */}
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="md:hidden fixed top-4 left-4 z-50 p-2 bg-slate-800 rounded-lg text-white"
+      >
+        {isOpen ? <X size={24} /> : <Menu size={24} />}
+      </button>
+
+      {/* Overlay */}
+      {isOpen && (
+        <div 
+          className="md:hidden fixed inset-0 bg-black/50 z-40"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div className={`
+        fixed md:static inset-y-0 left-0 z-40
+        w-64 bg-slate-900 min-h-screen p-4
+        transform transition-transform duration-300
+        ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+      `}>
+        <h1 className="text-xl font-bold text-white mb-8 mt-12 md:mt-0">WiFi Manager</h1>
+        <nav className="space-y-2">
+          {navItems.map((item) => {
+            const Icon = item.icon
+            const isActive = pathname === item.href
+            return (
+              <Link 
+                key={item.href}
+                href={item.href}
+                onClick={() => setIsOpen(false)}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
+                  isActive 
+                    ? 'bg-cyan-600 text-white' 
+                    : 'text-gray-300 hover:bg-slate-800'
+                }`}
+              >
+                <Icon size={20} />
+                {item.label}
+              </Link>
+            )
+          })}
+        </nav>
+      </div>
+    </>
   )
 }

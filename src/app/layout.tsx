@@ -20,9 +20,9 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <SettingsProvider>
-          <div className="flex">
+          <div className="flex min-h-screen">
             <Sidebar />
-            <main className="flex-1 p-8">
+            <main className="flex-1 p-4 md:p-8 w-full md:ml-0">
               {children}
             </main>
           </div>
