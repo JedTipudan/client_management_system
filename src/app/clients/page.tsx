@@ -3,6 +3,9 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { Plus, Search, Edit, Trash2, X } from 'lucide-react'
 
+
+
+
 export default function ClientsPage() {
   const [clients, setClients] = useState<any[]>([])
   const [plans, setPlans] = useState<any[]>([])
@@ -17,6 +20,19 @@ export default function ClientsPage() {
     client_name: '', contact_number: '', location: '', plan_id: '', due_date: '', notes: ''
   })
   const [editId, setEditId] = useState<any>(null)
+
+    const [user, setUser] = useState<any>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      const userData = data.user
+      setUser(userData)
+      if (userData?.email) {
+        setIsAdmin(['your-admin-email@example.com'].includes(userData.email.toLowerCase()))
+      }
+    })
+  }, [])
 
   useEffect(() => { fetchData() }, [])
 
@@ -92,9 +108,11 @@ export default function ClientsPage() {
     <div>
       <div className="flex flex-col md:flex-row justify-between mb-6 gap-4">
         <h2 className="text-3xl font-bold">Clients Management</h2>
-        <button onClick={() => { setEditId(null); setFormData({ client_name: '', contact_number: '', location: '', plan_id: '', due_date: '', notes: '' }); setShowModal(true) }} className="bg-cyan-600 hover:bg-cyan-700 px-4 py-2 rounded-lg flex items-center gap-2 font-semibold">
-          <Plus size={20} /> Add Client
-        </button>
+                {isAdmin && (
+          <button onClick={() => { setEditId(null); setFormData({ client_name: '', contact_number: '', location: '', plan_id: '', due_date: '', notes: '' }); setShowModal(true) }} className="bg-cyan-600 hover:bg-cyan-700 px-4 py-2 rounded-lg flex items-center gap-2 font-semibold">
+            <Plus size={20} /> Add Client
+          </button>
+        )}
       </div>
 
       <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 mb-6 flex flex-wrap gap-4">
@@ -136,9 +154,13 @@ export default function ClientsPage() {
                       {status.text}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right">
-                    <button onClick={() => openEdit(client)} className="text-cyan-400 hover:text-cyan-300 mr-3"><Edit size={18} /></button>
-                    <button onClick={() => handleDelete(client.id)} className="text-red-400 hover:text-red-300"><Trash2 size={18} /></button>
+                                    <td className="px-6 py-4 text-right">
+                    {isAdmin && (
+                      <>
+                        <button onClick={() => openEdit(client)} className="text-cyan-400 hover:text-cyan-300 mr-3"><Edit size={18} /></button>
+                        <button onClick={() => handleDelete(client.id)} className="text-red-400 hover:text-red-300"><Trash2 size={18} /></button>
+                      </>
+                    )}
                   </td>
                 </tr>
               )

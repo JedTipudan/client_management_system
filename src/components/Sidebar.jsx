@@ -4,19 +4,29 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Home, Users, Calendar, MapPin, Settings, Menu, X, Tag, LogIn, LogOut } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
+import { adminEmails } from '../app/_lib/adminEmails'
 
 export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false)
   const pathname = usePathname()
   const [user, setUser] = useState(null)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user)
+      const userData = data.user
+      setUser(userData)
+      if (userData?.email) {
+        setIsAdmin(adminEmails.includes(userData.email.toLowerCase()))
+      }
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user || null)
+      const userData = session?.user
+      setUser(userData)
+      if (userData?.email) {
+        setIsAdmin(adminEmails.includes(userData.email.toLowerCase()))
+      }
     })
 
     return () => subscription.unsubscribe()
@@ -33,6 +43,10 @@ export default function Sidebar() {
     { href: '/due-dates', icon: Calendar, label: 'Due Dates' },
     { href: '/locations', icon: MapPin, label: 'Locations' },
     { href: '/plans', icon: Tag, label: 'Plans' },
+  ]
+
+  // Only admins can see Settings
+  const adminItems = [
     { href: '/settings', icon: Settings, label: 'Settings' },
   ]
 
@@ -66,8 +80,36 @@ export default function Sidebar() {
           <span className="text-white text-sm font-normal">& Data Solutions</span>
         </h1>
         
+        {/* Admin Badge */}
+        {isAdmin && (
+          <div className="text-center mb-4">
+            <span className="bg-cyan-600 text-white text-xs px-3 py-1 rounded-full">ADMIN</span>
+          </div>
+        )}
+        
         <nav className="space-y-2">
           {navItems.map((item) => {
+            const Icon = item.icon
+            const isActive = pathname === item.href
+            return (
+              <Link 
+                key={item.href}
+                href={item.href}
+                onClick={() => setIsOpen(false)}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
+                  isActive 
+                    ? 'bg-cyan-600 text-white' 
+                    : 'text-gray-300 hover:bg-slate-800'
+                }`}
+              >
+                <Icon size={20} />
+                {item.label}
+              </Link>
+            )
+          })}
+          
+          {/* Only show Settings for Admin */}
+          {isAdmin && adminItems.map((item) => {
             const Icon = item.icon
             const isActive = pathname === item.href
             return (
