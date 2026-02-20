@@ -38,12 +38,11 @@ export default function Dashboard() {
     <div>
       <h2 className="text-3xl font-bold mb-8">Dashboard Overview</h2>
 
-      {/* Stats Cards - Semi transparent so logo shows */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="p-6 bg-white/10 backdrop-blur-md rounded-xl text-white border border-white/20 shadow-lg">
+        <div className="p-6 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl text-white">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-blue-200 text-sm">Total Clients</p>
+              <p className="text-blue-100 text-sm">Total Clients</p>
               <h3 className="text-4xl font-bold mt-2">{totalClients}</h3>
             </div>
             <div className="p-3 bg-white/20 rounded-lg">
@@ -52,10 +51,10 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="p-6 bg-white/10 backdrop-blur-md rounded-xl text-white border border-white/20 shadow-lg">
+        <div className="p-6 bg-gradient-to-br from-green-600 to-green-700 rounded-xl text-white">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-green-200 text-sm">Active</p>
+              <p className="text-green-100 text-sm">Active</p>
               <h3 className="text-4xl font-bold mt-2">{activeClients}</h3>
             </div>
             <div className="p-3 bg-white/20 rounded-lg">
@@ -64,10 +63,10 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="p-6 bg-white/10 backdrop-blur-md rounded-xl text-white border border-white/20 shadow-lg">
+        <div className="p-6 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl text-white">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-yellow-200 text-sm">Due Today</p>
+              <p className="text-yellow-100 text-sm">Due Today</p>
               <h3 className="text-4xl font-bold mt-2">{dueToday}</h3>
             </div>
             <div className="p-3 bg-white/20 rounded-lg">
@@ -76,10 +75,10 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="p-6 bg-white/10 backdrop-blur-md rounded-xl text-white border border-white/20 shadow-lg">
+        <div className="p-6 bg-gradient-to-br from-red-500 to-red-600 rounded-xl text-white">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-red-200 text-sm">Overdue</p>
+              <p className="text-red-100 text-sm">Overdue</p>
               <h3 className="text-4xl font-bold mt-2">{overdue}</h3>
             </div>
             <div className="p-3 bg-white/20 rounded-lg">
@@ -99,38 +98,38 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white/10 backdrop-blur-md rounded-xl border border-white/20 p-6">
+        <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
           <h3 className="text-xl font-bold mb-4">Recent Clients</h3>
           {recentClients.length === 0 ? (
-            <p className="text-slate-400">No clients yet</p>
+            <p className="text-slate-500">No clients yet</p>
           ) : (
             <div className="space-y-3">
               {recentClients.map((client: any) => (
-                <div key={client.id} className="flex justify-between items-center p-3 bg-white/10 rounded-lg">
+                <div key={client.id} className="flex justify-between items-center p-3 bg-slate-700/50 rounded-lg">
                   <div>
                     <p className="font-medium">{client.client_name}</p>
                     <p className="text-sm text-slate-400">{client.location}</p>
                   </div>
-                  <span className="text-cyan-300 font-bold">₱{client.plans?.price || 0}</span>
+                  <span className="text-cyan-400 font-bold">₱{client.plans?.price || 0}</span>
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        <div className="bg-white/10 backdrop-blur-md rounded-xl border border-white/20 p-6">
+        <div className="bg-slate-800 rounded-xl border border-slate-700 p-6">
           <h3 className="text-xl font-bold mb-4">Upcoming Due Dates</h3>
           {upcomingDue.length === 0 ? (
-            <p className="text-slate-400">No upcoming due dates</p>
+            <p className="text-slate-500">No upcoming due dates</p>
           ) : (
             <div className="space-y-3">
               {upcomingDue.map((client: any) => (
-                <div key={client.id} className="flex justify-between items-center p-3 bg-white/10 rounded-lg">
+                <div key={client.id} className="flex justify-between items-center p-3 bg-slate-700/50 rounded-lg">
                   <div>
                     <p className="font-medium">{client.client_name}</p>
                     <p className="text-sm text-slate-400">{client.location}</p>
                   </div>
-                  <span className="text-yellow-300 font-medium">{client.due_date}</span>
+                  <span className="text-yellow-400 font-medium">{client.due_date}</span>
                 </div>
               ))}
             </div>
