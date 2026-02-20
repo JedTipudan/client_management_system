@@ -42,14 +42,7 @@ export default function Sidebar() {
         transform transition-transform duration-300
         ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
-        {/* Logo at top of sidebar */}
-        <div className="mb-6 mt-12 md:mt-0">
-          <img 
-            src="/logo.png" 
-            alt="Logo" 
-            className="w-16 h-16 mx-auto rounded-xl object-contain bg-white/10 p-2"
-          />
-        </div>
+
         
         <h1 className="text-xl font-bold text-white text-center mb-6" style={{ fontFamily: 'Poppins, sans-serif' }}>
           Brylle's Network<br/>
