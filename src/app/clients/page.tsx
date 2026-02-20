@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { Plus, Search, Edit, Trash2, X } from 'lucide-react'
-import DatePicker from '../../components/DatePicker'
+
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<any[]>([])
@@ -191,9 +191,14 @@ export default function ClientsPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Due Date</label>
-                <DatePicker value={formData.due_date} onChange={handleDateChange} />
-              </div>
+  <label className="block text-sm text-slate-400 mb-1">Due Date</label>
+  <input 
+    type="date" 
+    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white"
+    value={formData.due_date} 
+    onChange={e => setFormData({...formData, due_date: e.target.value})}
+  />
+</div>
               <div>
                 <label className="block text-sm text-slate-400 mb-1">Notes</label>
                 <textarea className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white" rows={3} value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})}></textarea>
