@@ -43,7 +43,7 @@ export default function Sidebar() {
       `}>
         <h1 className="text-2xl font-bold text-white mb-8 mt-12 md:mt-0" style={{ fontFamily: 'Poppins, sans-serif', letterSpacing: '0.5px' }}>
           Brylle's Network<br/>
-          <span className="text-sm font-normal text-gray-400" style={{ fontFamily: 'Poppins, sans-serif' }}>& Data Solutions</span>
+          <span className="text-sm font-bold text-gray-400" style={{ fontFamily: 'Poppins, sans-serif' }}>& Data Solutions</span>
         </h1>
         <nav className="space-y-2">
           {navItems.map((item) => {
