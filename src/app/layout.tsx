@@ -7,7 +7,7 @@ import SettingsProvider from "../components/SettingsProvider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "WiFi Manager",
+  title: "Brylle's Network & Data Solutions",
   description: "Client Management System",
 };
 
