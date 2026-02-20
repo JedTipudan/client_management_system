@@ -24,3 +24,19 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(1);
   cursor: pointer;
 }
+/* Fix calendar text color */
+.rdp {
+  --rdp-cell-size: 36px;
+  --rdp-accent-color: #06b6d4; /* Cyan color */
+  --rdp-background-color: #e0f2fe;
+  margin: 0;
+}
+
+.rdp-day_selected:not([disabled]) { 
+  background-color: #06b6d4 !important;
+  color: white !important;
+}
+
+.rdp-day:hover:not([disabled]) {
+  background-color: #f1f5f9 !important;
+}
