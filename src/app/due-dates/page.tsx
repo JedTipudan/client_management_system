@@ -9,11 +9,9 @@ export default function DueDatesPage() {
   const [locFilter, setLocFilter] = useState('All')
   const [processingId, setProcessingId] = useState<string | null>(null)
 
-  // --- Admin Logic ---
   const [user, setUser] = useState<any>(null)
   const [isAdmin, setIsAdmin] = useState(false)
 
-  // --- Pagination State ---
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 
@@ -27,9 +25,7 @@ export default function DueDatesPage() {
     })
   }, [])
 
-  useEffect(() => { 
-    fetchData() 
-  }, [])
+  useEffect(() => { fetchData() }, [])
 
   const fetchData = async () => {
     const { data } = await supabase.from('clients').select('*, plans(name, price)').order('client_name')
@@ -39,51 +35,58 @@ export default function DueDatesPage() {
   // Calculate due date = installation + 1 month
   const calculateDueDate = (installDate: string) => {
     if (!installDate) return ''
-    const date = new Date(installDate)
+    const date = new Date(installDate + 'T00:00:00') // Force local time
     date.setMonth(date.getMonth() + 1)
     return date.toISOString().split('T')[0]
   }
 
   // Get effective due date (from database OR calculate from installation)
   const getDueDate = (client: any) => {
-    return client.due_date || calculateDueDate(client.installation_date)
+    if (client.due_date) return client.due_date
+    if (client.installation_date) return calculateDueDate(client.installation_date)
+    return ''
   }
 
-  // Use local date to avoid timezone issues
-  const today = new Date()
-  const todayStr = today.toISOString().split('T')[0]
+  // FIXED: Get today's date as YYYY-MM-DD in local time
+  const getTodayStr = () => {
+    const today = new Date()
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, '0')
+    const day = String(today.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
 
   const getStatus = (client: any) => {
     const dueDate = getDueDate(client)
     if (!dueDate) return 'paid'
     
-    // Compare dates as strings to avoid timezone issues
-    if (dueDate < todayStr) {
-      const due = new Date(dueDate + 'T00:00:00')
-      const daysOverdue = Math.floor((today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24))
+    const todayStr = getTodayStr()
+    const dueDateObj = new Date(dueDate + 'T00:00:00')
+    const todayObj = new Date(todayStr + 'T00:00:00')
+    
+    // If due date is in the past or today
+    if (dueDateObj <= todayObj) {
+      const daysOverdue = Math.floor((todayObj.getTime() - dueDateObj.getTime()) / (1000 * 60 * 60 * 24))
       if (daysOverdue > 30) return 'unsettled'
       return 'unpaid'
     }
+    
     return 'paid'
   }
 
-  // Check if date is in current month
   const isThisMonth = (dateStr: string) => {
+    const today = new Date()
     const date = new Date(dateStr + 'T00:00:00')
-    return date.getMonth() === today.getMonth() && 
-           date.getFullYear() === today.getFullYear()
+    return date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear()
   }
 
-  // 1. Filter the data - Location Filter FIRST
-  const filteredByLocation = clients
-    .filter((c: any) => {
-      if (locFilter === 'All') return true
-      return c.location === locFilter
-    })
+  const filteredByLocation = clients.filter((c: any) => {
+    if (locFilter === 'All') return true
+    return c.location === locFilter
+  })
 
-  // 2. Then filter by Status
   const filteredClients = filteredByLocation
-    .filter((c: any) => c.installation_date)
+    .filter((c: any) => c.installation_date || c.due_date)
     .filter((c: any) => {
       const status = getStatus(c)
       
@@ -91,7 +94,6 @@ export default function DueDatesPage() {
       if (statusFilter === 'paid') return status === 'paid'
       if (statusFilter === 'unsettled') return status === 'unsettled'
       
-      // UNPAID: Shows ONLY unpaid for THIS MONTH
       if (statusFilter === 'unpaid') {
         const dueDate = getDueDate(c)
         return status === 'unpaid' && isThisMonth(dueDate)
@@ -101,37 +103,25 @@ export default function DueDatesPage() {
     })
     .sort((a, b) => a.client_name.localeCompare(b.client_name))
 
-  // 3. Calculate Pagination
   const totalItems = filteredClients.length
   const totalPages = Math.ceil(totalItems / itemsPerPage)
-  
-  const currentData = filteredClients.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  )
+  const currentData = filteredClients.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
 
-  // Reset to page 1 when filters change
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [statusFilter, locFilter])
+  useEffect(() => { setCurrentPage(1) }, [statusFilter, locFilter])
 
-  // TOP STATS: Show ALL unpaid (not just this month)
   const stats = {
     paid: clients.filter(c => getStatus(c) === 'paid').length,
     unpaid: clients.filter(c => getStatus(c) === 'unpaid').length,
     unsettled: clients.filter(c => getStatus(c) === 'unsettled').length,
   }
 
-  // Get unique locations for the dropdown
   const uniqueLocations = [...new Set(clients.map(c => c.location).filter(Boolean))]
 
-  // --- MARK AS PAID FUNCTION ---
   const handleMarkAsPaid = async (client: any) => {
     const currentDueDate = getDueDate(client)
     if (!currentDueDate) return
 
     const [year, month, day] = currentDueDate.split('-').map(Number)
-    
     let newMonth = month + 1
     let newYear = year
     
@@ -148,10 +138,7 @@ export default function DueDatesPage() {
     
     setProcessingId(client.id)
     
-    const { error } = await supabase
-      .from('clients')
-      .update({ due_date: newDueDateStr })
-      .eq('id', client.id)
+    const { error } = await supabase.from('clients').update({ due_date: newDueDateStr }).eq('id', client.id)
 
     if (!error) {
       fetchData()
@@ -165,7 +152,6 @@ export default function DueDatesPage() {
     <div>
       <h2 className="text-3xl font-bold mb-8">Due Dates List (A-Z)</h2>
 
-      {/* Stats - ALL CLIENTS */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-xl">
           <p className="text-green-400 font-bold">Paid</p>
@@ -181,13 +167,8 @@ export default function DueDatesPage() {
         </div>
       </div>
 
-      {/* Filters */}
       <div className="flex flex-wrap gap-4 mb-6">
-        <select 
-          className="bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-white"
-          value={locFilter}
-          onChange={e => setLocFilter(e.target.value)}
-        >
+        <select className="bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-white" value={locFilter} onChange={e => setLocFilter(e.target.value)}>
           <option value="All">All Locations</option>
           {uniqueLocations.map((loc: any) => <option key={loc} value={loc}>{loc}</option>)}
         </select>
@@ -198,8 +179,7 @@ export default function DueDatesPage() {
         <button onClick={() => setStatusFilter('unsettled')} className={`px-4 py-2 rounded-lg ${statusFilter === 'unsettled' ? 'bg-orange-600' : 'bg-slate-700'}`}>Unsettled</button>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto bg-transparent backdrop-blur-sm rounded-xl border border-white/10">
+      <div className="overflow-x-auto bg-transparent rounded-xl border border-white/10">
         <table className="w-full text-left">
           <thead className="bg-slate-900 text-slate-400 uppercase text-xs">
             <tr>
@@ -236,11 +216,7 @@ export default function DueDatesPage() {
                   </td>
                   <td className="px-6 py-4 text-right">
                     {isAdmin && status !== 'paid' && (
-                      <button 
-                        onClick={() => handleMarkAsPaid(client)}
-                        disabled={isProcessing}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold rounded disabled:opacity-50"
-                      >
+                      <button onClick={() => handleMarkAsPaid(client)} disabled={isProcessing} className="inline-flex items-center gap-1 px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold rounded disabled:opacity-50">
                         {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
                         {isProcessing ? 'Processing...' : 'Mark Paid'}
                       </button>
@@ -250,32 +226,19 @@ export default function DueDatesPage() {
               )
             })}
             {currentData.length === 0 && (
-              <tr>
-                <td colSpan={7} className="px-6 py-8 text-center text-slate-500">No clients found</td>
-              </tr>
+              <tr><td colSpan={7} className="px-6 py-8 text-center text-slate-500">No clients found</td></tr>
             )}
           </tbody>
         </table>
       </div>
 
-      {/* Pagination Controls */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-6 bg-slate-800 p-4 rounded-xl border border-slate-700">
-          <button 
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-            className="flex items-center gap-1 px-4 py-2 bg-slate-700 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-600"
-          >
+          <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => Math.max(1, p - 1))} className="flex items-center gap-1 px-4 py-2 bg-slate-700 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-600">
             <ChevronLeft size={18} /> Previous
           </button>
-          <span className="text-slate-300">
-            Page <span className="text-white font-bold">{currentPage}</span> of <span className="text-white font-bold">{totalPages}</span>
-          </span>
-          <button 
-            disabled={currentPage === totalPages}
-            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-            className="flex items-center gap-1 px-4 py-2 bg-slate-700 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-600"
-          >
+          <span className="text-slate-300">Page <span className="text-white font-bold">{currentPage}</span> of <span className="text-white font-bold">{totalPages}</span></span>
+          <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} className="flex items-center gap-1 px-4 py-2 bg-slate-700 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-600">
             Next <ChevronRight size={18} />
           </button>
         </div>
