@@ -45,14 +45,37 @@ export default function DueDatesPage() {
     return 'paid'
   }
 
+  // Check if date is in current month
+  const isThisMonth = (dateStr: string) => {
+    const date = new Date(dateStr)
+    return date.getMonth() === today.getMonth() && 
+           date.getFullYear() === today.getFullYear()
+  }
+
   const uniqueLocations = [...new Set(clients.map(c => c.location).filter(Boolean))]
 
   const filteredClients = clients
     .filter((c: any) => c.due_date)
     .filter((c: any) => {
       const status = getStatus(c)
+      
       if (statusFilter === 'all') return true
-      return status === statusFilter
+      
+      if (statusFilter === 'paid') {
+        return status === 'paid'
+      }
+      
+      if (statusFilter === 'unsettled') {
+        return status === 'unsettled'
+      }
+      
+      if (statusFilter === 'unpaid') {
+        // Button: Show ONLY unpaid for THIS MONTH
+        if (status === 'unpaid' && isThisMonth(c.due_date)) return true
+        return false
+      }
+      
+      return true
     })
     .filter((c: any) => {
       if (locFilter === 'All') return true
@@ -60,6 +83,7 @@ export default function DueDatesPage() {
     })
     .sort((a, b) => a.client_name.localeCompare(b.client_name))
 
+  // TOP STATS: Show ALL unpaid (not just this month)
   const stats = {
     paid: clients.filter(c => getStatus(c) === 'paid').length,
     unpaid: clients.filter(c => getStatus(c) === 'unpaid').length,
@@ -105,14 +129,14 @@ export default function DueDatesPage() {
     <div>
       <h2 className="text-3xl font-bold mb-8">Due Dates List (A-Z)</h2>
 
-      {/* Stats */}
+      {/* Stats - ALL CLIENTS */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-xl">
           <p className="text-green-400 font-bold">Paid</p>
           <p className="text-2xl font-bold">{stats.paid}</p>
         </div>
         <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
-          <p className="text-red-400 font-bold">Unpaid</p>
+          <p className="text-red-400 font-bold">Unpaid (Total)</p>
           <p className="text-2xl font-bold">{stats.unpaid}</p>
         </div>
         <div className="p-4 bg-orange-500/10 border border-orange-500/30 rounded-xl">
@@ -138,7 +162,7 @@ export default function DueDatesPage() {
         <button onClick={() => setStatusFilter('unsettled')} className={`px-4 py-2 rounded-lg ${statusFilter === 'unsettled' ? 'bg-orange-600' : 'bg-slate-700'}`}>Unsettled</button>
       </div>
 
-      {/* Table - Changed overflow-hidden to overflow-x-auto */}
+      {/* Table */}
       <div className="overflow-x-auto bg-transparent backdrop-blur-sm rounded-xl border border-white/10">
         <table className="w-full text-left">
           <thead className="bg-slate-900 text-slate-400 uppercase text-xs">
@@ -172,7 +196,6 @@ export default function DueDatesPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    {/* Admin Only: Mark Paid Button */}
                     {isAdmin && status !== 'paid' && (
                       <button 
                         onClick={() => handleMarkAsPaid(client)}
