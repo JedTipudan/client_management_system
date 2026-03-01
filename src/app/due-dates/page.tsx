@@ -1,4 +1,5 @@
 'use client'
+
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { CheckCircle, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
@@ -32,22 +33,19 @@ export default function DueDatesPage() {
     setClients(data || [])
   }
 
-  // Calculate due date = installation + 1 month
   const calculateDueDate = (installDate: string) => {
     if (!installDate) return ''
-    const date = new Date(installDate + 'T00:00:00') // Force local time
+    const date = new Date(installDate + 'T00:00:00')
     date.setMonth(date.getMonth() + 1)
     return date.toISOString().split('T')[0]
   }
 
-  // Get effective due date (from database OR calculate from installation)
   const getDueDate = (client: any) => {
     if (client.due_date) return client.due_date
     if (client.installation_date) return calculateDueDate(client.installation_date)
     return ''
   }
 
-  // FIXED: Get today's date as YYYY-MM-DD in local time
   const getTodayStr = () => {
     const today = new Date()
     const year = today.getFullYear()
@@ -64,7 +62,6 @@ export default function DueDatesPage() {
     const dueDateObj = new Date(dueDate + 'T00:00:00')
     const todayObj = new Date(todayStr + 'T00:00:00')
     
-    // If due date is in the past or today
     if (dueDateObj <= todayObj) {
       const daysOverdue = Math.floor((todayObj.getTime() - dueDateObj.getTime()) / (1000 * 60 * 60 * 24))
       if (daysOverdue > 30) return 'unsettled'
@@ -186,7 +183,6 @@ export default function DueDatesPage() {
               <th className="px-6 py-4">Client Name</th>
               <th className="px-6 py-4">Location</th>
               <th className="px-6 py-4">Plan</th>
-              <th className="px-6 py-4">Installation Date</th>
               <th className="px-6 py-4">Due Date</th>
               <th className="px-6 py-4">Status</th>
               <th className="px-6 py-4 text-right">Actions</th>
@@ -203,7 +199,6 @@ export default function DueDatesPage() {
                   <td className="px-6 py-4 font-medium">{client.client_name}</td>
                   <td className="px-6 py-4">{client.location}</td>
                   <td className="px-6 py-4">{client.plans?.name} (₱{client.plans?.price})</td>
-                  <td className="px-6 py-4">{client.installation_date}</td>
                   <td className="px-6 py-4">{dueDate}</td>
                   <td className="px-6 py-4">
                     <span className={`px-2 py-1 rounded-full text-xs font-bold ${
@@ -226,7 +221,7 @@ export default function DueDatesPage() {
               )
             })}
             {currentData.length === 0 && (
-              <tr><td colSpan={7} className="px-6 py-8 text-center text-slate-500">No clients found</td></tr>
+              <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-500">No clients found</td></tr>
             )}
           </tbody>
         </table>
