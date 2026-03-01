@@ -88,14 +88,27 @@ export default function ClientsPage() {
       return
     }
     
-    // Auto calculate due date
+    // Always calculate due date from installation date
     const due_date = calculateDueDate(formData.installation_date)
-    const finalData = { ...formData, due_date }
+    const finalData = { 
+      ...formData, 
+      due_date 
+    }
 
     if (editId) {
-      await supabase.from('clients').update(finalData).eq('id', editId)
+      // When editing, update the client
+      const { error } = await supabase.from('clients').update(finalData).eq('id', editId)
+      if (error) {
+        alert("Error updating client: " + error.message)
+        return
+      }
     } else {
-      await supabase.from('clients').insert(finalData)
+      // When adding new client
+      const { error } = await supabase.from('clients').insert(finalData)
+      if (error) {
+        alert("Error adding client: " + error.message)
+        return
+      }
     }
     setShowModal(false)
     fetchData()
