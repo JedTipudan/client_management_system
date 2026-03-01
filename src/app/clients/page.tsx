@@ -10,19 +10,17 @@ export default function ClientsPage() {
   
   const [locFilter, setLocFilter] = useState('All')
   const [search, setSearch] = useState('')
-
-  // --- NEW: Pagination State ---
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 10 // Change to 20, 50, etc. if you want
+  const itemsPerPage = 10
 
   const [showModal, setShowModal] = useState(false)
   
   const [formData, setFormData] = useState({
-    client_name: '', contact_number: '', location: '', plan_id: '', due_date: '', notes: ''
+    client_name: '', contact_number: '', location: '', plan_id: '', installation_date: '', notes: ''
   })
   const [editId, setEditId] = useState<any>(null)
 
-    const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<any>(null)
   const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
@@ -49,53 +47,55 @@ export default function ClientsPage() {
     setLocations(locRes.data || [])
   }
 
-  const getAutoStatus = (client: any) => {
-  if (!client.due_date) return { text: 'Active', color: 'bg-green-500/10 text-green-500' }
-  
-  const today = new Date()
-  const dueDate = new Date(client.due_date)
-  
-  if (dueDate <= today) {
-    const daysOverdue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
-    if (daysOverdue > 30) {
-      return { text: 'Unsettled', color: 'bg-orange-500/10 text-orange-500' }
-    }
-    return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
+  // Calculate due date from installation date (+1 month)
+  const calculateDueDate = (installDate: string) => {
+    if (!installDate) return ''
+    const date = new Date(installDate)
+    date.setMonth(date.getMonth() + 1)
+    return date.toISOString().split('T')[0]
   }
-  
-  return { text: 'Active', color: 'bg-green-500/10 text-green-500' }
-}
 
-  // 1. Filter the data first
+  const getAutoStatus = (client: any) => {
+    // Calculate due date from installation_date
+    const dueDate = client.due_date || calculateDueDate(client.installation_date)
+    if (!dueDate) return { text: 'Active', color: 'bg-green-500/10 text-green-500' }
+    
+    const today = new Date()
+    const due = new Date(dueDate)
+    
+    if (due <= today) {
+      const daysOverdue = Math.floor((today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24))
+      if (daysOverdue > 30) return { text: 'Unsettled', color: 'bg-orange-500/10 text-orange-500' }
+      return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
+    }
+    return { text: 'Active', color: 'bg-green-500/10 text-green-500' }
+  }
+
   const filteredClients = clients
     .filter(c => locFilter === 'All' || c.location === locFilter)
     .filter(c => c.client_name.toLowerCase().includes(search.toLowerCase()) || c.contact_number?.includes(search))
     .sort((a, b) => a.client_name.localeCompare(b.client_name))
 
-  // 2. Calculate pagination
   const totalItems = filteredClients.length
   const totalPages = Math.ceil(totalItems / itemsPerPage)
-  
-  // 3. Slice data for current page
-  const currentData = filteredClients.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  )
+  const currentData = filteredClients.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
 
-  // Reset to page 1 when filters change
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [locFilter, search])
+  useEffect(() => { setCurrentPage(1) }, [locFilter, search])
 
   const handleSave = async () => {
-    if (!formData.client_name || !formData.location || !formData.plan_id) {
+    if (!formData.client_name || !formData.location || !formData.plan_id || !formData.installation_date) {
       alert("Please fill in required fields")
       return
     }
+    
+    // Auto calculate due date
+    const due_date = calculateDueDate(formData.installation_date)
+    const finalData = { ...formData, due_date }
+
     if (editId) {
-      await supabase.from('clients').update(formData).eq('id', editId)
+      await supabase.from('clients').update(finalData).eq('id', editId)
     } else {
-      await supabase.from('clients').insert(formData)
+      await supabase.from('clients').insert(finalData)
     }
     setShowModal(false)
     fetchData()
@@ -114,7 +114,7 @@ export default function ClientsPage() {
       contact_number: client.contact_number, 
       location: client.location, 
       plan_id: client.plan_id, 
-      due_date: client.due_date, 
+      installation_date: client.installation_date || '', 
       notes: client.notes || '' 
     })
     setEditId(client.id)
@@ -125,8 +125,8 @@ export default function ClientsPage() {
     <div>
       <div className="flex flex-col md:flex-row justify-between mb-6 gap-4">
         <h2 className="text-3xl font-bold">Clients Management</h2>
-                {isAdmin && (
-          <button onClick={() => { setEditId(null); setFormData({ client_name: '', contact_number: '', location: '', plan_id: '', due_date: '', notes: '' }); setShowModal(true) }} className="bg-cyan-600 hover:bg-cyan-700 px-4 py-2 rounded-lg flex items-center gap-2 font-semibold">
+        {isAdmin && (
+          <button onClick={() => { setEditId(null); setFormData({ client_name: '', contact_number: '', location: '', plan_id: '', installation_date: '', notes: '' }); setShowModal(true) }} className="bg-cyan-600 hover:bg-cyan-700 px-4 py-2 rounded-lg flex items-center gap-2 font-semibold">
             <Plus size={20} /> Add Client
           </button>
         )}
@@ -143,12 +143,11 @@ export default function ClientsPage() {
         </select>
       </div>
 
-      {/* Stats Summary */}
       <div className="mb-4 text-slate-400 text-sm">
         Showing <span className="text-white font-bold">{currentData.length}</span> of <span className="text-white font-bold">{totalItems}</span> clients
       </div>
 
-      <div className="overflow-x-auto bg-transparent backdrop-blur-sm to-purple-600/20 backdrop-blur-sm rounded-xl border border-white/10">
+      <div className="overflow-x-auto bg-transparent rounded-xl border border-white/10">
         <table className="w-full text-left">
           <thead className="bg-slate-900 text-slate-400 uppercase text-xs">
             <tr>
@@ -156,7 +155,7 @@ export default function ClientsPage() {
               <th className="px-6 py-4">Contact</th>
               <th className="px-6 py-4">Location</th>
               <th className="px-6 py-4">Plan</th>
-              <th className="px-6 py-4">Due Date</th>
+              <th className="px-6 py-4">Installation Date</th>
               <th className="px-6 py-4">Status</th>
               <th className="px-6 py-4 text-right">Actions</th>
             </tr>
@@ -170,13 +169,13 @@ export default function ClientsPage() {
                   <td className="px-6 py-4 text-slate-400">{client.contact_number}</td>
                   <td className="px-6 py-4">{client.location}</td>
                   <td className="px-6 py-4">{client.plans?.name} (₱{client.plans?.price})</td>
-                  <td className="px-6 py-4">{client.due_date || '-'}</td>
+                  <td className="px-6 py-4">{client.installation_date || '-'}</td>
                   <td className="px-6 py-4">
                     <span className={`px-2 py-1 rounded-full text-xs font-bold ${status.color}`}>
                       {status.text}
                     </span>
                   </td>
-                                    <td className="px-6 py-4 text-right">
+                  <td className="px-6 py-4 text-right">
                     {isAdmin && (
                       <>
                         <button onClick={() => openEdit(client)} className="text-cyan-400 hover:text-cyan-300 mr-3"><Edit size={18} /></button>
@@ -196,24 +195,13 @@ export default function ClientsPage() {
         </table>
       </div>
 
-      {/* --- Pagination Controls --- */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-6 bg-slate-800 p-4 rounded-xl border border-slate-700">
-          <button 
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-            className="flex items-center gap-1 px-4 py-2 bg-slate-700 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-600"
-          >
+          <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => Math.max(1, p - 1))} className="flex items-center gap-1 px-4 py-2 bg-slate-700 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-600">
             <ChevronLeft size={18} /> Previous
           </button>
-          <span className="text-slate-300">
-            Page <span className="text-white font-bold">{currentPage}</span> of <span className="text-white font-bold">{totalPages}</span>
-          </span>
-          <button 
-            disabled={currentPage === totalPages}
-            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-            className="flex items-center gap-1 px-4 py-2 bg-slate-700 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-600"
-          >
+          <span className="text-slate-300">Page <span className="text-white font-bold">{currentPage}</span> of <span className="text-white font-bold">{totalPages}</span></span>
+          <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} className="flex items-center gap-1 px-4 py-2 bg-slate-700 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-600">
             Next <ChevronRight size={18} />
           </button>
         </div>
@@ -221,7 +209,7 @@ export default function ClientsPage() {
 
       {showModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-          <div className="bg-slate-800 p-6 rounded-xl w-full max-w-lg border border-slate-700">
+          <div className="bg-slate-800 p-6 rounded-xl w-full max-w-lg border border-slate-700 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-bold">{editId ? 'Edit Client' : 'Add New Client'}</h3>
               <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-white"><X size={24} /></button>
@@ -250,13 +238,9 @@ export default function ClientsPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Due Date</label>
-                <input 
-                  type="date" 
-                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white"
-                  value={formData.due_date} 
-                  onChange={e => setFormData({...formData, due_date: e.target.value})}
-                />
+                <label className="block text-sm text-slate-400 mb-1">Installation Date *</label>
+                <input type="date" className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white" value={formData.installation_date} onChange={e => setFormData({...formData, installation_date: e.target.value})} />
+                <p className="text-xs text-slate-500 mt-1">Due date will be auto: Installation + 1 month</p>
               </div>
               <div>
                 <label className="block text-sm text-slate-400 mb-1">Notes</label>

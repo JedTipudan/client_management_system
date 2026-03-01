@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
-import { CheckCircle, Loader2 } from 'lucide-react'
+import { CheckCircle, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
 
 export default function DueDatesPage() {
   const [clients, setClients] = useState<any[]>([])
@@ -12,6 +12,10 @@ export default function DueDatesPage() {
   // --- Admin Logic ---
   const [user, setUser] = useState<any>(null)
   const [isAdmin, setIsAdmin] = useState(false)
+
+  // --- Pagination State ---
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -32,13 +36,31 @@ export default function DueDatesPage() {
     setClients(data || [])
   }
 
+  // Calculate due date = installation + 1 month
+  const calculateDueDate = (installDate: string) => {
+    if (!installDate) return ''
+    const date = new Date(installDate)
+    date.setMonth(date.getMonth() + 1)
+    return date.toISOString().split('T')[0]
+  }
+
+  // Get effective due date (from database OR calculate from installation)
+  const getDueDate = (client: any) => {
+    return client.due_date || calculateDueDate(client.installation_date)
+  }
+
+  // Use local date to avoid timezone issues
   const today = new Date()
+  const todayStr = today.toISOString().split('T')[0]
 
   const getStatus = (client: any) => {
-    if (!client.due_date) return 'paid'
-    const dueDate = new Date(client.due_date)
-    if (dueDate <= today) {
-      const daysOverdue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
+    const dueDate = getDueDate(client)
+    if (!dueDate) return 'paid'
+    
+    // Compare dates as strings to avoid timezone issues
+    if (dueDate < todayStr) {
+      const due = new Date(dueDate + 'T00:00:00')
+      const daysOverdue = Math.floor((today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24))
       if (daysOverdue > 30) return 'unsettled'
       return 'unpaid'
     }
@@ -47,41 +69,51 @@ export default function DueDatesPage() {
 
   // Check if date is in current month
   const isThisMonth = (dateStr: string) => {
-    const date = new Date(dateStr)
+    const date = new Date(dateStr + 'T00:00:00')
     return date.getMonth() === today.getMonth() && 
            date.getFullYear() === today.getFullYear()
   }
 
-  const uniqueLocations = [...new Set(clients.map(c => c.location).filter(Boolean))]
-
-  const filteredClients = clients
-    .filter((c: any) => c.due_date)
-    .filter((c: any) => {
-      const status = getStatus(c)
-      
-      if (statusFilter === 'all') return true
-      
-      if (statusFilter === 'paid') {
-        return status === 'paid'
-      }
-      
-      if (statusFilter === 'unsettled') {
-        return status === 'unsettled'
-      }
-      
-      if (statusFilter === 'unpaid') {
-        // Button: Show ONLY unpaid for THIS MONTH
-        if (status === 'unpaid' && isThisMonth(c.due_date)) return true
-        return false
-      }
-      
-      return true
-    })
+  // 1. Filter the data - Location Filter FIRST
+  const filteredByLocation = clients
     .filter((c: any) => {
       if (locFilter === 'All') return true
       return c.location === locFilter
     })
+
+  // 2. Then filter by Status
+  const filteredClients = filteredByLocation
+    .filter((c: any) => c.installation_date)
+    .filter((c: any) => {
+      const status = getStatus(c)
+      
+      if (statusFilter === 'all') return true
+      if (statusFilter === 'paid') return status === 'paid'
+      if (statusFilter === 'unsettled') return status === 'unsettled'
+      
+      // UNPAID: Shows ONLY unpaid for THIS MONTH
+      if (statusFilter === 'unpaid') {
+        const dueDate = getDueDate(c)
+        return status === 'unpaid' && isThisMonth(dueDate)
+      }
+      
+      return true
+    })
     .sort((a, b) => a.client_name.localeCompare(b.client_name))
+
+  // 3. Calculate Pagination
+  const totalItems = filteredClients.length
+  const totalPages = Math.ceil(totalItems / itemsPerPage)
+  
+  const currentData = filteredClients.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  )
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [statusFilter, locFilter])
 
   // TOP STATS: Show ALL unpaid (not just this month)
   const stats = {
@@ -90,11 +122,15 @@ export default function DueDatesPage() {
     unsettled: clients.filter(c => getStatus(c) === 'unsettled').length,
   }
 
+  // Get unique locations for the dropdown
+  const uniqueLocations = [...new Set(clients.map(c => c.location).filter(Boolean))]
+
   // --- MARK AS PAID FUNCTION ---
   const handleMarkAsPaid = async (client: any) => {
-    if (!client.due_date) return
+    const currentDueDate = getDueDate(client)
+    if (!currentDueDate) return
 
-    const [year, month, day] = client.due_date.split('-').map(Number)
+    const [year, month, day] = currentDueDate.split('-').map(Number)
     
     let newMonth = month + 1
     let newYear = year
@@ -108,7 +144,7 @@ export default function DueDatesPage() {
     const finalDay = Math.min(day, daysInNewMonth)
     const newDueDateStr = `${newYear}-${String(newMonth).padStart(2, '0')}-${String(finalDay).padStart(2, '0')}`
 
-    if (!confirm(`Mark as paid?\nDue date will advance from ${client.due_date} to ${newDueDateStr}`)) return
+    if (!confirm(`Mark as paid?\nDue date will advance from ${currentDueDate} to ${newDueDateStr}`)) return
     
     setProcessingId(client.id)
     
@@ -170,22 +206,25 @@ export default function DueDatesPage() {
               <th className="px-6 py-4">Client Name</th>
               <th className="px-6 py-4">Location</th>
               <th className="px-6 py-4">Plan</th>
+              <th className="px-6 py-4">Installation Date</th>
               <th className="px-6 py-4">Due Date</th>
               <th className="px-6 py-4">Status</th>
               <th className="px-6 py-4 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-700">
-            {filteredClients.map((client: any) => {
+            {currentData.map((client: any) => {
               const status = getStatus(client)
               const isProcessing = processingId === client.id
+              const dueDate = getDueDate(client)
               
               return (
                 <tr key={client.id} className="hover:bg-slate-700/50">
                   <td className="px-6 py-4 font-medium">{client.client_name}</td>
                   <td className="px-6 py-4">{client.location}</td>
                   <td className="px-6 py-4">{client.plans?.name} (₱{client.plans?.price})</td>
-                  <td className="px-6 py-4">{client.due_date}</td>
+                  <td className="px-6 py-4">{client.installation_date}</td>
+                  <td className="px-6 py-4">{dueDate}</td>
                   <td className="px-6 py-4">
                     <span className={`px-2 py-1 rounded-full text-xs font-bold ${
                       status === 'paid' ? 'bg-green-500/10 text-green-500' : 
@@ -210,14 +249,37 @@ export default function DueDatesPage() {
                 </tr>
               )
             })}
-            {filteredClients.length === 0 && (
+            {currentData.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-slate-500">No clients found</td>
+                <td colSpan={7} className="px-6 py-8 text-center text-slate-500">No clients found</td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-6 bg-slate-800 p-4 rounded-xl border border-slate-700">
+          <button 
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            className="flex items-center gap-1 px-4 py-2 bg-slate-700 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-600"
+          >
+            <ChevronLeft size={18} /> Previous
+          </button>
+          <span className="text-slate-300">
+            Page <span className="text-white font-bold">{currentPage}</span> of <span className="text-white font-bold">{totalPages}</span>
+          </span>
+          <button 
+            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            className="flex items-center gap-1 px-4 py-2 bg-slate-700 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-600"
+          >
+            Next <ChevronRight size={18} />
+          </button>
+        </div>
+      )}
     </div>
   )
 }
