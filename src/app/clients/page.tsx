@@ -1,10 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
-import { Plus, Search, Edit, Trash2, X } from 'lucide-react'
-
-
-
+import { Plus, Search, Edit, Trash2, X, ChevronLeft, ChevronRight } from 'lucide-react'
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<any[]>([])
@@ -13,6 +10,10 @@ export default function ClientsPage() {
   
   const [locFilter, setLocFilter] = useState('All')
   const [search, setSearch] = useState('')
+
+  // --- NEW: Pagination State ---
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10 // Change to 20, 50, etc. if you want
 
   const [showModal, setShowModal] = useState(false)
   
@@ -65,10 +66,26 @@ export default function ClientsPage() {
   return { text: 'Active', color: 'bg-green-500/10 text-green-500' }
 }
 
+  // 1. Filter the data first
   const filteredClients = clients
     .filter(c => locFilter === 'All' || c.location === locFilter)
     .filter(c => c.client_name.toLowerCase().includes(search.toLowerCase()) || c.contact_number?.includes(search))
     .sort((a, b) => a.client_name.localeCompare(b.client_name))
+
+  // 2. Calculate pagination
+  const totalItems = filteredClients.length
+  const totalPages = Math.ceil(totalItems / itemsPerPage)
+  
+  // 3. Slice data for current page
+  const currentData = filteredClients.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  )
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [locFilter, search])
 
   const handleSave = async () => {
     if (!formData.client_name || !formData.location || !formData.plan_id) {
@@ -126,7 +143,12 @@ export default function ClientsPage() {
         </select>
       </div>
 
-            <div className="overflow-x-auto bg-transparent backdrop-blur-sm to-purple-600/20 backdrop-blur-sm rounded-xl border border-white/10">
+      {/* Stats Summary */}
+      <div className="mb-4 text-slate-400 text-sm">
+        Showing <span className="text-white font-bold">{currentData.length}</span> of <span className="text-white font-bold">{totalItems}</span> clients
+      </div>
+
+      <div className="overflow-x-auto bg-transparent backdrop-blur-sm to-purple-600/20 backdrop-blur-sm rounded-xl border border-white/10">
         <table className="w-full text-left">
           <thead className="bg-slate-900 text-slate-400 uppercase text-xs">
             <tr>
@@ -140,7 +162,7 @@ export default function ClientsPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-700">
-            {filteredClients.map((client: any) => {
+            {currentData.map((client: any) => {
               const status = getAutoStatus(client)
               return (
                 <tr key={client.id} className="hover:bg-slate-700/50 transition">
@@ -165,9 +187,37 @@ export default function ClientsPage() {
                 </tr>
               )
             })}
+            {currentData.length === 0 && (
+              <tr>
+                <td colSpan={7} className="text-center py-8 text-slate-500">No clients found.</td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
+
+      {/* --- Pagination Controls --- */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-6 bg-slate-800 p-4 rounded-xl border border-slate-700">
+          <button 
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            className="flex items-center gap-1 px-4 py-2 bg-slate-700 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-600"
+          >
+            <ChevronLeft size={18} /> Previous
+          </button>
+          <span className="text-slate-300">
+            Page <span className="text-white font-bold">{currentPage}</span> of <span className="text-white font-bold">{totalPages}</span>
+          </span>
+          <button 
+            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            className="flex items-center gap-1 px-4 py-2 bg-slate-700 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-600"
+          >
+            Next <ChevronRight size={18} />
+          </button>
+        </div>
+      )}
 
       {showModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
