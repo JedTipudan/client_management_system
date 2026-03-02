@@ -13,10 +13,7 @@ export default function ClientsPage() {
   const itemsPerPage = 10
   const [showModal, setShowModal] = useState(false)
   const [formData, setFormData] = useState({ client_name: '', contact_number: '', location: '', plan_id: '', installation_date: '', notes: '' })
-  
-  // FIXED: Corrected syntax error here
   const [editId, setEditId] = useState<any>(null)
-  
   const [user, setUser] = useState<any>(null)
   const [isAdmin, setIsAdmin] = useState(false)
 
@@ -63,8 +60,8 @@ export default function ClientsPage() {
     
     const daysOverdue = Math.floor((today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24))
     
-    // UPDATED: If overdue for 30 days (1 month) or more, it becomes Unsettled
-    if (daysOverdue >= 30) return { text: 'Unsettled', color: 'bg-orange-500/10 text-orange-500' }
+    // FIXED: If overdue for more than 0 days (passed the due date), it becomes Unsettled
+    if (daysOverdue > 0) return { text: 'Unsettled', color: 'bg-orange-500/10 text-orange-500' }
     return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
   }
 
