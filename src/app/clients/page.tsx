@@ -63,15 +63,10 @@ export default function ClientsPage() {
     return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
   }
 
-  // SORTED BY INSTALLATION DATE (NEWEST FIRST)
   const filteredClients = clients
     .filter(c => locFilter === 'All' || c.location === locFilter)
     .filter(c => c.client_name.toLowerCase().includes(search.toLowerCase()) || c.contact_number?.includes(search))
-    .sort((a, b) => {
-      if (!a.installation_date) return 1
-      if (!b.installation_date) return -1
-      return new Date(b.installation_date).getTime() - new Date(a.installation_date).getTime()
-    })
+    .sort((a, b) => new Date(a.installation_date).getTime() - new Date(b.installation_date).getTime())
 
   const totalItems = filteredClients.length
   const totalPages = Math.ceil(totalItems / itemsPerPage)
