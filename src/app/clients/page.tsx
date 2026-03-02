@@ -47,7 +47,6 @@ export default function ClientsPage() {
     return date.toISOString().split('T')[0]
   }
 
-  // UPDATED: Match DueDates logic - Future due date = Active
   const getAutoStatus = (client: any) => {
     const dueDate = client.due_date || calculateDueDate(client.installation_date)
     if (!dueDate) return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
@@ -55,7 +54,6 @@ export default function ClientsPage() {
     const today = new Date()
     const due = new Date(dueDate)
     
-    // If due date is in the future = ACTIVE (paid)
     if (due > today) {
       return { text: 'Active', color: 'bg-green-500/10 text-green-500' }
     }
@@ -65,10 +63,15 @@ export default function ClientsPage() {
     return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
   }
 
+  // SORTED BY INSTALLATION DATE (NEWEST FIRST)
   const filteredClients = clients
     .filter(c => locFilter === 'All' || c.location === locFilter)
     .filter(c => c.client_name.toLowerCase().includes(search.toLowerCase()) || c.contact_number?.includes(search))
-    .sort((a, b) => a.client_name.localeCompare(b.client_name))
+    .sort((a, b) => {
+      if (!a.installation_date) return 1
+      if (!b.installation_date) return -1
+      return new Date(b.installation_date).getTime() - new Date(a.installation_date).getTime()
+    })
 
   const totalItems = filteredClients.length
   const totalPages = Math.ceil(totalItems / itemsPerPage)
@@ -113,7 +116,6 @@ export default function ClientsPage() {
       <div className="flex flex-col md:flex-row justify-between mb-6 gap-4">
         <h2 className="text-3xl font-bold">Clients Management</h2>
         <div className="flex gap-2">
-          {/* Added Refresh Button */}
           <button onClick={fetchData} className="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg flex items-center gap-2 font-semibold text-white">
             <RefreshCw size={18} /> Refresh
           </button>
