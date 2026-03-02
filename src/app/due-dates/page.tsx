@@ -54,6 +54,7 @@ export default function DueDatesPage() {
     return `${year}-${month}-${day}`
   }
 
+  // FIXED: Only show clients with due date <= today (reached)
   const isDueDateReached = (client: any) => {
     const dueDate = getDueDate(client)
     if (!dueDate) return false
@@ -66,18 +67,13 @@ export default function DueDatesPage() {
     return dueDateObj <= todayObj
   }
 
-  const getStatus = (client: any): 'paid' | 'unpaid' | 'unsettled' => {
+  const getStatus = (client: any): 'unpaid' | 'unsettled' => {
     const dueDate = getDueDate(client)
     if (!dueDate) return 'unpaid'
     
     const todayStr = getTodayStr()
     const dueDateObj = new Date(dueDate + 'T00:00:00')
     const todayObj = new Date(todayStr + 'T00:00:00')
-    
-    // FIXED: Future due date = PAID (not unpaid)
-    if (dueDateObj > todayObj) {
-      return 'paid'
-    }
     
     const daysOverdue = Math.floor((todayObj.getTime() - dueDateObj.getTime()) / (1000 * 60 * 60 * 24))
     if (daysOverdue > 30) return 'unsettled'
@@ -97,13 +93,12 @@ export default function DueDatesPage() {
 
   const filteredClients = filteredByLocation
     .filter((c: any) => c.installation_date || c.due_date)
-    // NEW: Only show clients whose due date has reached (today or past)
+    // Show only clients whose due date has been reached (today or past)
     .filter((c: any) => isDueDateReached(c))
     .filter((c: any) => {
       const status = getStatus(c)
       
       if (statusFilter === 'all') return true
-      if (statusFilter === 'paid') return status === 'paid'
       if (statusFilter === 'unsettled') return status === 'unsettled'
       
       if (statusFilter === 'unpaid') {
@@ -121,8 +116,8 @@ export default function DueDatesPage() {
 
   useEffect(() => { setCurrentPage(1) }, [statusFilter, locFilter])
 
+  // Stats: Only count clients with due date reached
   const stats = {
-    paid: clients.filter(c => isDueDateReached(c) && getStatus(c) === 'paid').length,
     unpaid: clients.filter(c => isDueDateReached(c) && getStatus(c) === 'unpaid').length,
     unsettled: clients.filter(c => isDueDateReached(c) && getStatus(c) === 'unsettled').length,
   }
@@ -164,17 +159,13 @@ export default function DueDatesPage() {
     <div>
       <h2 className="text-3xl font-bold mb-8">Due Dates List (A-Z)</h2>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-xl">
-          <p className="text-green-400 font-bold">Paid</p>
-          <p className="text-2xl font-bold">{stats.paid}</p>
-        </div>
+      <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
-          <p className="text-red-400 font-bold">Unpaid (Total)</p>
+          <p className="text-red-400 font-bold">Unpaid (This Month)</p>
           <p className="text-2xl font-bold">{stats.unpaid}</p>
         </div>
         <div className="p-4 bg-orange-500/10 border border-orange-500/30 rounded-xl">
-          <p className="text-orange-400 font-bold">Unsettled</p>
+          <p className="text-orange-400 font-bold">Unsettled (Overdue 30+ days)</p>
           <p className="text-2xl font-bold">{stats.unsettled}</p>
         </div>
       </div>
@@ -186,7 +177,6 @@ export default function DueDatesPage() {
         </select>
 
         <button onClick={() => setStatusFilter('all')} className={`px-4 py-2 rounded-lg ${statusFilter === 'all' ? 'bg-cyan-600' : 'bg-slate-700'}`}>All</button>
-        <button onClick={() => setStatusFilter('paid')} className={`px-4 py-2 rounded-lg ${statusFilter === 'paid' ? 'bg-green-600' : 'bg-slate-700'}`}>Paid</button>
         <button onClick={() => setStatusFilter('unpaid')} className={`px-4 py-2 rounded-lg ${statusFilter === 'unpaid' ? 'bg-red-600' : 'bg-slate-700'}`}>Unpaid</button>
         <button onClick={() => setStatusFilter('unsettled')} className={`px-4 py-2 rounded-lg ${statusFilter === 'unsettled' ? 'bg-orange-600' : 'bg-slate-700'}`}>Unsettled</button>
       </div>
@@ -217,20 +207,17 @@ export default function DueDatesPage() {
                   <td className="px-6 py-4">{dueDate}</td>
                   <td className="px-6 py-4">
                     <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                      status === 'paid' ? 'bg-green-500/10 text-green-500' : 
                       status === 'unpaid' ? 'bg-red-500/10 text-red-500' : 
                       'bg-orange-500/10 text-orange-500'
                     }`}>
-                      {status === 'paid' ? 'Paid' : status === 'unpaid' ? 'Unpaid' : 'Unsettled'}
+                      {status === 'unpaid' ? 'Unpaid' : 'Unsettled'}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    {isAdmin && status !== 'paid' && (
-                      <button onClick={() => handleMarkAsPaid(client)} disabled={isProcessing} className="inline-flex items-center gap-1 px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold rounded disabled:opacity-50">
-                        {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
-                        {isProcessing ? 'Processing...' : 'Mark Paid'}
-                      </button>
-                    )}
+                    <button onClick={() => handleMarkAsPaid(client)} disabled={isProcessing} className="inline-flex items-center gap-1 px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold rounded disabled:opacity-50">
+                      {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
+                      {isProcessing ? 'Processing...' : 'Mark Paid'}
+                    </button>
                   </td>
                 </tr>
               )
