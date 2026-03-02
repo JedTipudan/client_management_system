@@ -32,20 +32,51 @@ export default function Dashboard() {
     fetchData()
   }, [])
 
+  const calculateDueDate = (installDate: string) => {
+    if (!installDate) return ''
+    const date = new Date(installDate)
+    date.setMonth(date.getMonth() + 1)
+    return date.toISOString().split('T')[0]
+  }
+
+  const getDueDate = (client: any) => {
+    if (client.due_date) return client.due_date
+    if (client.installation_date) return calculateDueDate(client.installation_date)
+    return ''
+  }
+
   const today = new Date()
   const todayStr = today.toISOString().split('T')[0]
 
+  // FIXED: Same logic as Due Dates page
+  // Active = clients with NO due date at all (brand new clients)
+  const isActive = (client: any) => {
+    const dueDate = getDueDate(client)
+    return !dueDate || dueDate === ''
+  }
+
   const totalClients = clients.length
-  const activeClients = clients.filter(c => c.due_date && c.due_date > todayStr).length
-  const dueToday = clients.filter(c => c.due_date === todayStr).length
-  const overdue = clients.filter(c => c.due_date && c.due_date < todayStr).length
+  const activeClients = clients.filter(c => isActive(c)).length
+  const dueToday = clients.filter(c => getDueDate(c) === todayStr).length
+  
+  // Overdue = past due date (more than today)
+  const overdueClients = clients.filter(c => {
+    const dueDate = getDueDate(c)
+    if (!dueDate) return false
+    const dueDateObj = new Date(dueDate)
+    return dueDateObj < today
+  }).length
 
   const recentClients = clients.slice(0, 5)
 
   const nextWeek = new Date()
   nextWeek.setDate(nextWeek.getDate() + 7)
   const upcomingDue = clients
-    .filter(c => c.due_date && c.due_date >= todayStr && c.due_date <= nextWeek.toISOString().split('T')[0])
+    .filter(c => {
+      const dueDate = getDueDate(c)
+      if (!dueDate) return false
+      return dueDate >= todayStr && dueDate <= nextWeek.toISOString().split('T')[0]
+    })
     .slice(0, 5)
 
   return (
@@ -93,7 +124,7 @@ export default function Dashboard() {
           <div className="flex justify-between items-start">
             <div>
               <p className="text-red-100 text-sm">Overdue</p>
-              <h3 className="text-4xl font-bold mt-2">{overdue}</h3>
+              <h3 className="text-4xl font-bold mt-2">{overdueClients}</h3>
             </div>
             <div className="p-3 bg-white/20 rounded-lg">
               <AlertCircle size={24} />
@@ -146,7 +177,7 @@ export default function Dashboard() {
                     <p className="font-medium">{client.client_name}</p>
                     <p className="text-sm text-slate-400">{client.location}</p>
                   </div>
-                  <span className="text-yellow-300 font-medium">{client.due_date}</span>
+                  <span className="text-yellow-300 font-medium">{getDueDate(client)}</span>
                 </div>
               ))}
             </div>

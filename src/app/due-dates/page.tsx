@@ -54,21 +54,21 @@ export default function DueDatesPage() {
     return `${year}-${month}-${day}`
   }
 
-  const getStatus = (client: any) => {
+  const getStatus = (client: any): 'paid' | 'unpaid' | 'unsettled' => {
     const dueDate = getDueDate(client)
-    if (!dueDate) return 'paid'
+    if (!dueDate) return 'unpaid'
     
     const todayStr = getTodayStr()
     const dueDateObj = new Date(dueDate + 'T00:00:00')
     const todayObj = new Date(todayStr + 'T00:00:00')
     
-    if (dueDateObj <= todayObj) {
-      const daysOverdue = Math.floor((todayObj.getTime() - dueDateObj.getTime()) / (1000 * 60 * 60 * 24))
-      if (daysOverdue > 30) return 'unsettled'
+    if (dueDateObj > todayObj) {
       return 'unpaid'
     }
     
-    return 'paid'
+    const daysOverdue = Math.floor((todayObj.getTime() - dueDateObj.getTime()) / (1000 * 60 * 60 * 24))
+    if (daysOverdue > 30) return 'unsettled'
+    return 'unpaid'
   }
 
   const isThisMonth = (dateStr: string) => {

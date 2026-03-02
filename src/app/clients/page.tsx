@@ -7,19 +7,13 @@ export default function ClientsPage() {
   const [clients, setClients] = useState<any[]>([])
   const [plans, setPlans] = useState<any[]>([])
   const [locations, setLocations] = useState<any[]>([])
-  
   const [locFilter, setLocFilter] = useState('All')
   const [search, setSearch] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
-
   const [showModal, setShowModal] = useState(false)
-  
-  const [formData, setFormData] = useState({
-    client_name: '', contact_number: '', location: '', plan_id: '', installation_date: '', notes: ''
-  })
+  const [formData, setFormData] = useState({ client_name: '', contact_number: '', location: '', plan_id: '', installation_date: '', notes: '' })
   const [editId, setEditId] = useState<any>(null)
-
   const [user, setUser] = useState<any>(null)
   const [isAdmin, setIsAdmin] = useState(false)
 
@@ -41,13 +35,11 @@ export default function ClientsPage() {
       supabase.from('plans').select('*'),
       supabase.from('locations').select('*').order('name')
     ])
-    
     setClients(clientsRes.data || [])
     setPlans(planRes.data || [])
     setLocations(locRes.data || [])
   }
 
-  // Calculate due date from installation date (+1 month)
   const calculateDueDate = (installDate: string) => {
     if (!installDate) return ''
     const date = new Date(installDate)
@@ -55,20 +47,21 @@ export default function ClientsPage() {
     return date.toISOString().split('T')[0]
   }
 
+  // FIXED: Future due dates now show as "Unpaid" instead of "Active"
   const getAutoStatus = (client: any) => {
-    // Calculate due date from installation_date
     const dueDate = client.due_date || calculateDueDate(client.installation_date)
-    if (!dueDate) return { text: 'Active', color: 'bg-green-500/10 text-green-500' }
+    if (!dueDate) return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
     
     const today = new Date()
     const due = new Date(dueDate)
     
-    if (due <= today) {
-      const daysOverdue = Math.floor((today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24))
-      if (daysOverdue > 30) return { text: 'Unsettled', color: 'bg-orange-500/10 text-orange-500' }
+    if (due > today) {
       return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
     }
-    return { text: 'Active', color: 'bg-green-500/10 text-green-500' }
+    
+    const daysOverdue = Math.floor((today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24))
+    if (daysOverdue > 30) return { text: 'Unsettled', color: 'bg-orange-500/10 text-orange-500' }
+    return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
   }
 
   const filteredClients = clients
@@ -87,28 +80,15 @@ export default function ClientsPage() {
       alert("Please fill in required fields")
       return
     }
-    
-    // Always calculate due date from installation date
     const due_date = calculateDueDate(formData.installation_date)
-    const finalData = { 
-      ...formData, 
-      due_date 
-    }
+    const finalData = { ...formData, due_date }
 
     if (editId) {
-      // When editing, update the client
       const { error } = await supabase.from('clients').update(finalData).eq('id', editId)
-      if (error) {
-        alert("Error updating client: " + error.message)
-        return
-      }
+      if (error) { alert("Error updating client: " + error.message); return }
     } else {
-      // When adding new client
       const { error } = await supabase.from('clients').insert(finalData)
-      if (error) {
-        alert("Error adding client: " + error.message)
-        return
-      }
+      if (error) { alert("Error adding client: " + error.message); return }
     }
     setShowModal(false)
     fetchData()
@@ -122,14 +102,7 @@ export default function ClientsPage() {
   }
 
   const openEdit = (client: any) => {
-    setFormData({ 
-      client_name: client.client_name, 
-      contact_number: client.contact_number, 
-      location: client.location, 
-      plan_id: client.plan_id, 
-      installation_date: client.installation_date || '', 
-      notes: client.notes || '' 
-    })
+    setFormData({ client_name: client.client_name, contact_number: client.contact_number, location: client.location, plan_id: client.plan_id, installation_date: client.installation_date || '', notes: client.notes || '' })
     setEditId(client.id)
     setShowModal(true)
   }
@@ -184,9 +157,7 @@ export default function ClientsPage() {
                   <td className="px-6 py-4">{client.plans?.name} (₱{client.plans?.price})</td>
                   <td className="px-6 py-4">{client.installation_date || '-'}</td>
                   <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${status.color}`}>
-                      {status.text}
-                    </span>
+                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${status.color}`}>{status.text}</span>
                   </td>
                   <td className="px-6 py-4 text-right">
                     {isAdmin && (
@@ -200,9 +171,7 @@ export default function ClientsPage() {
               )
             })}
             {currentData.length === 0 && (
-              <tr>
-                <td colSpan={7} className="text-center py-8 text-slate-500">No clients found.</td>
-              </tr>
+              <tr><td colSpan={7} className="text-center py-8 text-slate-500">No clients found.</td></tr>
             )}
           </tbody>
         </table>
@@ -228,37 +197,12 @@ export default function ClientsPage() {
               <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-white"><X size={24} /></button>
             </div>
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm text-slate-400 mb-1">Client Name *</label>
-                <input type="text" className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white" value={formData.client_name} onChange={e => setFormData({...formData, client_name: e.target.value})} />
-              </div>
-              <div>
-                <label className="block text-sm text-slate-400 mb-1">Contact Number</label>
-                <input type="text" className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white" value={formData.contact_number} onChange={e => setFormData({...formData, contact_number: e.target.value})} />
-              </div>
-              <div>
-                <label className="block text-sm text-slate-400 mb-1">Location *</label>
-                <select className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})}>
-                  <option value="">Select</option>
-                  {locations.map((loc: any) => <option key={loc.id} value={loc.name}>{loc.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm text-slate-400 mb-1">Plan *</label>
-                <select className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white" value={formData.plan_id} onChange={e => setFormData({...formData, plan_id: e.target.value})}>
-                  <option value="">Select</option>
-                  {plans.map((p: any) => <option key={p.id} value={p.id}>{p.name} - ₱{p.price}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm text-slate-400 mb-1">Installation Date *</label>
-                <input type="date" className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white" value={formData.installation_date} onChange={e => setFormData({...formData, installation_date: e.target.value})} />
-                <p className="text-xs text-slate-500 mt-1">Due date will be auto: Installation + 1 month</p>
-              </div>
-              <div>
-                <label className="block text-sm text-slate-400 mb-1">Notes</label>
-                <textarea className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white" rows={3} value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})}></textarea>
-              </div>
+              <div><label className="block text-sm text-slate-400 mb-1">Client Name *</label><input type="text" className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white" value={formData.client_name} onChange={e => setFormData({...formData, client_name: e.target.value})} /></div>
+              <div><label className="block text-sm text-slate-400 mb-1">Contact Number</label><input type="text" className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white" value={formData.contact_number} onChange={e => setFormData({...formData, contact_number: e.target.value})} /></div>
+              <div><label className="block text-sm text-slate-400 mb-1">Location *</label><select className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})}><option value="">Select</option>{locations.map((loc: any) => <option key={loc.id} value={loc.name}>{loc.name}</option>)}</select></div>
+              <div><label className="block text-sm text-slate-400 mb-1">Plan *</label><select className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white" value={formData.plan_id} onChange={e => setFormData({...formData, plan_id: e.target.value})}><option value="">Select</option>{plans.map((p: any) => <option key={p.id} value={p.id}>{p.name} - ₱{p.price}</option>)}</select></div>
+              <div><label className="block text-sm text-slate-400 mb-1">Installation Date *</label><input type="date" className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white" value={formData.installation_date} onChange={e => setFormData({...formData, installation_date: e.target.value})} /><p className="text-xs text-slate-500 mt-1">Due date will be auto: Installation + 1 month</p></div>
+              <div><label className="block text-sm text-slate-400 mb-1">Notes</label><textarea className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white" rows={3} value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})}></textarea></div>
               <div className="flex justify-end gap-3 mt-6">
                 <button onClick={() => setShowModal(false)} className="px-4 py-2 rounded-lg text-slate-300 hover:bg-slate-700">Cancel</button>
                 <button onClick={handleSave} className="bg-cyan-600 hover:bg-cyan-700 px-6 py-2 rounded-lg font-bold">{editId ? 'Update' : 'Save'}</button>
