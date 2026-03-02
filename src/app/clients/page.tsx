@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
-import { Plus, Search, Edit, Trash2, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Search, Edit, Trash2, X, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<any[]>([])
@@ -30,8 +30,9 @@ export default function ClientsPage() {
   useEffect(() => { fetchData() }, [])
 
   const fetchData = async () => {
+    // UPDATED: Added 'is_paid' to the select query
     const [clientsRes, planRes, locRes] = await Promise.all([
-      supabase.from('clients').select('*, plans(name, price)'),
+      supabase.from('clients').select('*, plans(name, price), is_paid'),
       supabase.from('plans').select('*'),
       supabase.from('locations').select('*').order('name')
     ])
@@ -47,8 +48,15 @@ export default function ClientsPage() {
     return date.toISOString().split('T')[0]
   }
 
-  // FIXED: Future due dates now show as "Unpaid" instead of "Active"
+  // FIXED: Now checks if client is marked as paid
   const getAutoStatus = (client: any) => {
+    // 1. Check if client is marked as paid first
+    // NOTE: Make sure your database has a column named 'is_paid' (boolean)
+    // If your column has a different name, change 'is_paid' to match
+    if (client.is_paid) {
+      return { text: 'Active', color: 'bg-green-500/10 text-green-500' }
+    }
+
     const dueDate = client.due_date || calculateDueDate(client.installation_date)
     if (!dueDate) return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
     
@@ -111,11 +119,17 @@ export default function ClientsPage() {
     <div>
       <div className="flex flex-col md:flex-row justify-between mb-6 gap-4">
         <h2 className="text-3xl font-bold">Clients Management</h2>
-        {isAdmin && (
-          <button onClick={() => { setEditId(null); setFormData({ client_name: '', contact_number: '', location: '', plan_id: '', installation_date: '', notes: '' }); setShowModal(true) }} className="bg-cyan-600 hover:bg-cyan-700 px-4 py-2 rounded-lg flex items-center gap-2 font-semibold">
-            <Plus size={20} /> Add Client
+        <div className="flex gap-2">
+          {/* Added Refresh Button */}
+          <button onClick={fetchData} className="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg flex items-center gap-2 font-semibold text-white">
+            <RefreshCw size={18} /> Refresh
           </button>
-        )}
+          {isAdmin && (
+            <button onClick={() => { setEditId(null); setFormData({ client_name: '', contact_number: '', location: '', plan_id: '', installation_date: '', notes: '' }); setShowModal(true) }} className="bg-cyan-600 hover:bg-cyan-700 px-4 py-2 rounded-lg flex items-center gap-2 font-semibold">
+              <Plus size={20} /> Add Client
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 mb-6 flex flex-wrap gap-4">
