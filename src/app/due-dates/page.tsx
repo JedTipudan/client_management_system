@@ -54,6 +54,18 @@ export default function DueDatesPage() {
     return `${year}-${month}-${day}`
   }
 
+  const isDueDateReached = (client: any) => {
+    const dueDate = getDueDate(client)
+    if (!dueDate) return false
+    
+    const todayStr = getTodayStr()
+    const dueDateObj = new Date(dueDate + 'T00:00:00')
+    const todayObj = new Date(todayStr + 'T00:00:00')
+    
+    // Only show client if due date is today or in the past
+    return dueDateObj <= todayObj
+  }
+
   const getStatus = (client: any): 'paid' | 'unpaid' | 'unsettled' => {
     const dueDate = getDueDate(client)
     if (!dueDate) return 'unpaid'
@@ -85,6 +97,8 @@ export default function DueDatesPage() {
 
   const filteredClients = filteredByLocation
     .filter((c: any) => c.installation_date || c.due_date)
+    // NEW: Only show clients whose due date has reached (today or past)
+    .filter((c: any) => isDueDateReached(c))
     .filter((c: any) => {
       const status = getStatus(c)
       
@@ -108,9 +122,9 @@ export default function DueDatesPage() {
   useEffect(() => { setCurrentPage(1) }, [statusFilter, locFilter])
 
   const stats = {
-    paid: clients.filter(c => getStatus(c) === 'paid').length,
-    unpaid: clients.filter(c => getStatus(c) === 'unpaid').length,
-    unsettled: clients.filter(c => getStatus(c) === 'unsettled').length,
+    paid: clients.filter(c => isDueDateReached(c) && getStatus(c) === 'paid').length,
+    unpaid: clients.filter(c => isDueDateReached(c) && getStatus(c) === 'unpaid').length,
+    unsettled: clients.filter(c => isDueDateReached(c) && getStatus(c) === 'unsettled').length,
   }
 
   const uniqueLocations = [...new Set(clients.map(c => c.location).filter(Boolean))]
