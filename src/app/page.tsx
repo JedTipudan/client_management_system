@@ -39,7 +39,7 @@ export default function Dashboard() {
 
   const calculateDueDate = (installDate: string) => {
     if (!installDate) return ''
-    const date = new Date(installDate)
+    const date = new Date(installDate + 'T00:00:00')
     date.setMonth(date.getMonth() + 1)
     return date.toISOString().split('T')[0]
   }
@@ -58,7 +58,7 @@ export default function Dashboard() {
     return `${year}-${month}-${day}`
   }
 
-  // UPDATED: Match Due Dates tab logic
+  // FIXED: Changed > 30 to >= 30 to match Clients/DueDates pages
   const getStatus = (client: any): 'active' | 'unpaid' | 'unsettled' => {
     const dueDate = getDueDate(client)
     if (!dueDate) return 'active'
@@ -73,7 +73,7 @@ export default function Dashboard() {
     }
     
     const daysOverdue = Math.floor((todayObj.getTime() - dueDateObj.getTime()) / (1000 * 60 * 60 * 24))
-    if (daysOverdue > 30) return 'unsettled'
+    if (daysOverdue >= 30) return 'unsettled'
     return 'unpaid'
   }
 
