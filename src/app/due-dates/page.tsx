@@ -16,6 +16,15 @@ export default function DueDatesPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 
+  // Helper to get today's date as YYYY-MM-DD string in local time
+  const getTodayStr = () => {
+    const today = new Date()
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, '0')
+    const day = String(today.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       const userData = data.user
@@ -46,14 +55,6 @@ export default function DueDatesPage() {
     return ''
   }
 
-  const getTodayStr = () => {
-    const today = new Date()
-    const year = today.getFullYear()
-    const month = String(today.getMonth() + 1).padStart(2, '0')
-    const day = String(today.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
-  }
-
   const getStatus = (client: any): 'paid' | 'unpaid' | 'unsettled' => {
     const dueDate = getDueDate(client)
     if (!dueDate) return 'unpaid'
@@ -69,8 +70,8 @@ export default function DueDatesPage() {
     
     const daysOverdue = Math.floor((todayObj.getTime() - dueDateObj.getTime()) / (1000 * 60 * 60 * 24))
     
-    // FIXED: If overdue for more than 0 days (missed the due date), it becomes Unsettled immediately
-    if (daysOverdue > 0) return 'unsettled'
+    // LOGIC: If overdue >= 30 days, it becomes Unsettled
+    if (daysOverdue >= 30) return 'unsettled'
     return 'unpaid'
   }
 

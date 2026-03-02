@@ -17,6 +17,15 @@ export default function ClientsPage() {
   const [user, setUser] = useState<any>(null)
   const [isAdmin, setIsAdmin] = useState(false)
 
+  // Helper to get today's date as YYYY-MM-DD string in local time
+  const getTodayStr = () => {
+    const today = new Date()
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, '0')
+    const day = String(today.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       const userData = data.user
@@ -42,26 +51,35 @@ export default function ClientsPage() {
 
   const calculateDueDate = (installDate: string) => {
     if (!installDate) return ''
-    const date = new Date(installDate)
+    const date = new Date(installDate + 'T00:00:00')
     date.setMonth(date.getMonth() + 1)
     return date.toISOString().split('T')[0]
   }
 
   const getAutoStatus = (client: any) => {
-    const dueDate = client.due_date || calculateDueDate(client.installation_date)
-    if (!dueDate) return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
+    // Determine due date: if explicit due_date exists, use it, otherwise calc from install
+    let dueDateVal = client.due_date
+    if (!dueDateVal && client.installation_date) {
+        dueDateVal = calculateDueDate(client.installation_date)
+    }
+
+    if (!dueDateVal) return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
     
-    const today = new Date()
-    const due = new Date(dueDate)
+    // Use string comparison to avoid timezone issues
+    const todayStr = getTodayStr()
+    const dueDateObj = new Date(dueDateVal + 'T00:00:00')
+    const todayObj = new Date(todayStr + 'T00:00:00')
     
-    if (due > today) {
+    // If due date is in the future, it's Active
+    if (dueDateObj > todayObj) {
       return { text: 'Active', color: 'bg-green-500/10 text-green-500' }
     }
     
-    const daysOverdue = Math.floor((today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24))
+    // Calculate days overdue
+    const daysOverdue = Math.floor((todayObj.getTime() - dueDateObj.getTime()) / (1000 * 60 * 60 * 24))
     
-    // FIXED: If overdue for more than 0 days (passed the due date), it becomes Unsettled
-    if (daysOverdue > 0) return { text: 'Unsettled', color: 'bg-orange-500/10 text-orange-500' }
+    // LOGIC: If overdue >= 30 days, it becomes Unsettled
+    if (daysOverdue >= 30) return { text: 'Unsettled', color: 'bg-orange-500/10 text-orange-500' }
     return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
   }
 
