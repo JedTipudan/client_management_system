@@ -30,9 +30,8 @@ export default function ClientsPage() {
   useEffect(() => { fetchData() }, [])
 
   const fetchData = async () => {
-    // UPDATED: Added 'is_paid' to the select query
     const [clientsRes, planRes, locRes] = await Promise.all([
-      supabase.from('clients').select('*, plans(name, price), is_paid'),
+      supabase.from('clients').select('*, plans(name, price)'),
       supabase.from('plans').select('*'),
       supabase.from('locations').select('*').order('name')
     ])
@@ -48,23 +47,17 @@ export default function ClientsPage() {
     return date.toISOString().split('T')[0]
   }
 
-  // FIXED: Now checks if client is marked as paid
+  // UPDATED: Match DueDates logic - Future due date = Active
   const getAutoStatus = (client: any) => {
-    // 1. Check if client is marked as paid first
-    // NOTE: Make sure your database has a column named 'is_paid' (boolean)
-    // If your column has a different name, change 'is_paid' to match
-    if (client.is_paid) {
-      return { text: 'Active', color: 'bg-green-500/10 text-green-500' }
-    }
-
     const dueDate = client.due_date || calculateDueDate(client.installation_date)
     if (!dueDate) return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
     
     const today = new Date()
     const due = new Date(dueDate)
     
+    // If due date is in the future = ACTIVE (paid)
     if (due > today) {
-      return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
+      return { text: 'Active', color: 'bg-green-500/10 text-green-500' }
     }
     
     const daysOverdue = Math.floor((today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24))
