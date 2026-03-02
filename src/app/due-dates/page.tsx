@@ -62,8 +62,9 @@ export default function DueDatesPage() {
     const dueDateObj = new Date(dueDate + 'T00:00:00')
     const todayObj = new Date(todayStr + 'T00:00:00')
     
+    // FIXED: Future due date = PAID (not unpaid)
     if (dueDateObj > todayObj) {
-      return 'unpaid'
+      return 'paid'
     }
     
     const daysOverdue = Math.floor((todayObj.getTime() - dueDateObj.getTime()) / (1000 * 60 * 60 * 24))
