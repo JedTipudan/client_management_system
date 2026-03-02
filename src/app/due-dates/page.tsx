@@ -69,8 +69,8 @@ export default function DueDatesPage() {
     
     const daysOverdue = Math.floor((todayObj.getTime() - dueDateObj.getTime()) / (1000 * 60 * 60 * 24))
     
-    // FIXED: If overdue for 30 days or more, it becomes Unsettled
-    if (daysOverdue >= 30) return 'unsettled'
+    // FIXED: If overdue for more than 0 days (missed the due date), it becomes Unsettled immediately
+    if (daysOverdue > 0) return 'unsettled'
     return 'unpaid'
   }
 

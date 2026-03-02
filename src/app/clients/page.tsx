@@ -60,8 +60,8 @@ export default function ClientsPage() {
     
     const daysOverdue = Math.floor((today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24))
     
-    // FIXED: If overdue for 30 days or more, it becomes Unsettled
-    if (daysOverdue >= 30) return { text: 'Unsettled', color: 'bg-orange-500/10 text-orange-500' }
+    // FIXED: If overdue for more than 0 days (passed the due date), it becomes Unsettled
+    if (daysOverdue > 0) return { text: 'Unsettled', color: 'bg-orange-500/10 text-orange-500' }
     return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
   }
 
