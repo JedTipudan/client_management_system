@@ -1,12 +1,13 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
-import { Users, DollarSign, Calendar, AlertCircle, Plus, Clock } from 'lucide-react'
+import { Users, DollarSign, Calendar, AlertCircle, Plus, Clock, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 
 export default function Dashboard() {
   const [clients, setClients] = useState<any[]>([])
   const [plans, setPlans] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
   // --- Admin Logic ---
   const [user, setUser] = useState<any>(null)
@@ -22,13 +23,17 @@ export default function Dashboard() {
     })
   }, [])
 
+  // Combined fetchData function
+  const fetchData = async () => {
+    setLoading(true)
+    const { data: clientsData } = await supabase.from('clients').select('*, plans(price)').order('created_at', { ascending: false })
+    const { data: plansData } = await supabase.from('plans').select('*')
+    setClients(clientsData || [])
+    setPlans(plansData || [])
+    setLoading(false)
+  }
+
   useEffect(() => {
-    const fetchData = async () => {
-      const { data: clientsData } = await supabase.from('clients').select('*, plans(price)').order('created_at', { ascending: false })
-      const { data: plansData } = await supabase.from('plans').select('*')
-      setClients(clientsData || [])
-      setPlans(plansData || [])
-    }
     fetchData()
   }, [])
 
@@ -45,27 +50,37 @@ export default function Dashboard() {
     return ''
   }
 
-  const today = new Date()
-  const todayStr = today.toISOString().split('T')[0]
+  const getTodayStr = () => {
+    const today = new Date()
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, '0')
+    const day = String(today.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
 
-  // FIXED: Same logic as Due Dates page
-  // Active = clients with NO due date at all (brand new clients)
-  const isActive = (client: any) => {
+  // UPDATED: Match Due Dates tab logic
+  const getStatus = (client: any): 'active' | 'unpaid' | 'unsettled' => {
     const dueDate = getDueDate(client)
-    return !dueDate || dueDate === ''
+    if (!dueDate) return 'active'
+    
+    const todayStr = getTodayStr()
+    const dueDateObj = new Date(dueDate + 'T00:00:00')
+    const todayObj = new Date(todayStr + 'T00:00:00')
+    
+    // Future due date = ACTIVE (paid)
+    if (dueDateObj > todayObj) {
+      return 'active'
+    }
+    
+    const daysOverdue = Math.floor((todayObj.getTime() - dueDateObj.getTime()) / (1000 * 60 * 60 * 24))
+    if (daysOverdue > 30) return 'unsettled'
+    return 'unpaid'
   }
 
   const totalClients = clients.length
-  const activeClients = clients.filter(c => isActive(c)).length
-  const dueToday = clients.filter(c => getDueDate(c) === todayStr).length
-  
-  // Overdue = past due date (more than today)
-  const overdueClients = clients.filter(c => {
-    const dueDate = getDueDate(c)
-    if (!dueDate) return false
-    const dueDateObj = new Date(dueDate)
-    return dueDateObj < today
-  }).length
+  const activeClients = clients.filter(c => getStatus(c) === 'active').length
+  const unpaidClients = clients.filter(c => getStatus(c) === 'unpaid').length
+  const unsettledClients = clients.filter(c => getStatus(c) === 'unsettled').length
 
   const recentClients = clients.slice(0, 5)
 
@@ -75,13 +90,19 @@ export default function Dashboard() {
     .filter(c => {
       const dueDate = getDueDate(c)
       if (!dueDate) return false
+      const todayStr = getTodayStr()
       return dueDate >= todayStr && dueDate <= nextWeek.toISOString().split('T')[0]
     })
     .slice(0, 5)
 
   return (
     <div>
-      <h2 className="text-3xl font-bold mb-8">Dashboard Overview</h2>
+      <div className="flex justify-between items-center mb-8">
+        <h2 className="text-3xl font-bold">Dashboard Overview</h2>
+        <button onClick={fetchData} className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg text-white">
+          <RefreshCw size={18} className={loading ? 'animate-spin' : ''} /> Refresh
+        </button>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="p-6 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl text-white">
@@ -99,7 +120,7 @@ export default function Dashboard() {
         <div className="p-6 bg-gradient-to-br from-green-600 to-green-700 rounded-xl text-white">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-green-100 text-sm">Active</p>
+              <p className="text-green-100 text-sm">Active (Paid)</p>
               <h3 className="text-4xl font-bold mt-2">{activeClients}</h3>
             </div>
             <div className="p-3 bg-white/20 rounded-lg">
@@ -111,8 +132,8 @@ export default function Dashboard() {
         <div className="p-6 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl text-white">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-yellow-100 text-sm">Due Today</p>
-              <h3 className="text-4xl font-bold mt-2">{dueToday}</h3>
+              <p className="text-yellow-100 text-sm">Unpaid</p>
+              <h3 className="text-4xl font-bold mt-2">{unpaidClients}</h3>
             </div>
             <div className="p-3 bg-white/20 rounded-lg">
               <Calendar size={24} />
@@ -123,8 +144,8 @@ export default function Dashboard() {
         <div className="p-6 bg-gradient-to-br from-red-500 to-red-600 rounded-xl text-white">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-red-100 text-sm">Overdue</p>
-              <h3 className="text-4xl font-bold mt-2">{overdueClients}</h3>
+              <p className="text-red-100 text-sm">Unsettled</p>
+              <h3 className="text-4xl font-bold mt-2">{unsettledClients}</h3>
             </div>
             <div className="p-3 bg-white/20 rounded-lg">
               <AlertCircle size={24} />
