@@ -54,7 +54,7 @@ export default function DueDatesPage() {
     return `${year}-${month}-${day}`
   }
 
-  // FIXED: Only show clients with due date <= today (reached)
+  // Only show clients with due date <= today (reached)
   const isDueDateReached = (client: any) => {
     const dueDate = getDueDate(client)
     if (!dueDate) return false
@@ -63,7 +63,6 @@ export default function DueDatesPage() {
     const dueDateObj = new Date(dueDate + 'T00:00:00')
     const todayObj = new Date(todayStr + 'T00:00:00')
     
-    // Only show client if due date is today or in the past
     return dueDateObj <= todayObj
   }
 
@@ -93,7 +92,6 @@ export default function DueDatesPage() {
 
   const filteredClients = filteredByLocation
     .filter((c: any) => c.installation_date || c.due_date)
-    // Show only clients whose due date has been reached (today or past)
     .filter((c: any) => isDueDateReached(c))
     .filter((c: any) => {
       const status = getStatus(c)
@@ -159,6 +157,7 @@ export default function DueDatesPage() {
     <div>
       <h2 className="text-3xl font-bold mb-8">Due Dates List (A-Z)</h2>
 
+      {/* Stats Cards */}
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
           <p className="text-red-400 font-bold">Unpaid (This Month)</p>
@@ -170,6 +169,7 @@ export default function DueDatesPage() {
         </div>
       </div>
 
+      {/* Filters */}
       <div className="flex flex-wrap gap-4 mb-6">
         <select className="bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-white" value={locFilter} onChange={e => setLocFilter(e.target.value)}>
           <option value="All">All Locations</option>
@@ -181,6 +181,7 @@ export default function DueDatesPage() {
         <button onClick={() => setStatusFilter('unsettled')} className={`px-4 py-2 rounded-lg ${statusFilter === 'unsettled' ? 'bg-orange-600' : 'bg-slate-700'}`}>Unsettled</button>
       </div>
 
+      {/* Table */}
       <div className="overflow-x-auto bg-transparent rounded-xl border border-white/10">
         <table className="w-full text-left">
           <thead className="bg-slate-900 text-slate-400 uppercase text-xs">
