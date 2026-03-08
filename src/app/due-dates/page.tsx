@@ -229,8 +229,8 @@ export default function DueDatesPage() {
         <table className="w-full text-left">
           <thead className="bg-slate-900 text-slate-400 uppercase text-xs">
             <tr>
-              <th className="px-6 py-4">Status</th>
               <th className="px-6 py-4">Client Name</th>
+              <th className="px-6 py-4">Status</th>
               <th className="px-6 py-4">Location</th>
               <th className="px-6 py-4">Plan</th>
               <th className="px-6 py-4">Due Date</th>
@@ -250,12 +250,12 @@ export default function DueDatesPage() {
               
               return (
                 <tr key={client.id} className="hover:bg-slate-700/50">
+                  <td className="px-6 py-4 font-medium">{client.client_name}</td>
                   <td className="px-6 py-4">
                     <span className={`px-2 py-1 rounded-full text-xs font-bold ${clientStatus === 'active' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
                       {clientStatus === 'active' ? 'Active' : 'Inactive'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 font-medium">{client.client_name}</td>
                   <td className="px-6 py-4">{client.location}</td>
                   <td className="px-6 py-4">{client.plans?.name} (₱{client.plans?.price})</td>
                   <td className="px-6 py-4">{dueDate}</td>
