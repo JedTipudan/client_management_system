@@ -42,11 +42,25 @@ export default function DueDatesPage() {
     setClients(data || [])
   }
 
+  // FIXED: Calculate due date without timezone shifting
+  // This ensures Feb 3 -> March 3 exactly, not March 2 or 4
   const calculateDueDate = (installDate: string) => {
     if (!installDate) return ''
-    const date = new Date(installDate + 'T00:00:00')
-    date.setMonth(date.getMonth() + 1)
-    return date.toISOString().split('T')[0]
+    const [year, month, day] = installDate.split('-').map(Number)
+    
+    let newMonth = month + 1
+    let newYear = year
+    
+    if (newMonth > 12) {
+      newMonth = 1
+      newYear = year + 1
+    }
+
+    // Handle month-end days (e.g., Jan 31 -> Feb 28)
+    const daysInNewMonth = new Date(newYear, newMonth, 0).getDate()
+    const finalDay = Math.min(day, daysInNewMonth)
+
+    return `${newYear}-${String(newMonth).padStart(2, '0')}-${String(finalDay).padStart(2, '0')}`
   }
 
   const getDueDate = (client: any) => {
@@ -131,7 +145,8 @@ export default function DueDatesPage() {
       newYear = year + 1
     }
 
-    const daysInNewMonth = new Date(newYear, newMonth, 0).getDate()
+    // FIXED: Correct logic to get days in the NEW month
+    const daysInNewMonth = new Date(newYear, newMonth + 1, 0).getDate()
     const finalDay = Math.min(day, daysInNewMonth)
     const newDueDateStr = `${newYear}-${String(newMonth).padStart(2, '0')}-${String(finalDay).padStart(2, '0')}`
 
