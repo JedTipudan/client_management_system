@@ -17,6 +17,21 @@ export default function ClientsPage() {
   const [user, setUser] = useState<any>(null)
   const [isAdmin, setIsAdmin] = useState(false)
 
+  // Helper to get current year and month
+  const getCurrentYearMonth = () => {
+    const today = new Date()
+    return {
+      year: today.getFullYear(),
+      month: today.getMonth() + 1 // 1-12
+    }
+  }
+
+  // Helper to get due date year and month
+  const getDueYearMonth = (dateStr: string) => {
+    const [year, month, day] = dateStr.split('-').map(Number)
+    return { year, month }
+  }
+
   const getTodayStr = () => {
     const today = new Date()
     const year = today.getFullYear()
@@ -72,25 +87,24 @@ export default function ClientsPage() {
         dueDateVal = calculateDueDate(client.installation_date)
     }
 
-    if (!dueDateVal) return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500', monthsOverdue: 0 }
+    if (!dueDateVal) return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
     
-    const todayStr = getTodayStr()
-    const dueDateObj = new Date(dueDateVal + 'T00:00:00')
-    const todayObj = new Date(todayStr + 'T00:00:00')
+    const today = getCurrentYearMonth()
+    const due = getDueYearMonth(dueDateVal)
+    
+    // Calculate months overdue using CALENDAR MONTHS
+    const monthsOverdue = (today.year - due.year) * 12 + (today.month - due.month)
     
     // Future due date = Active
-    if (dueDateObj > todayObj) {
-      return { text: 'Active', color: 'bg-green-500/10 text-green-500', monthsOverdue: 0 }
+    if (monthsOverdue < 0) {
+      return { text: 'Active', color: 'bg-green-500/10 text-green-500' }
     }
     
-    // Calculate months overdue
-    const monthsOverdue = Math.floor((todayObj.getTime() - dueDateObj.getTime()) / (1000 * 60 * 60 * 24 * 30))
-    
-    // LOGIC: If overdue >= 1 month, it becomes Unsettled
+    // LOGIC: If due date month is in the past (any month), it becomes Unsettled
     if (monthsOverdue >= 1) {
-      return { text: `Unsettled (${monthsOverdue} mo)`, color: 'bg-orange-500/10 text-orange-500', monthsOverdue }
+      return { text: 'Unsettled', color: 'bg-orange-500/10 text-orange-500' }
     }
-    return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500', monthsOverdue: 0 }
+    return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
   }
 
   const filteredClients = clients
