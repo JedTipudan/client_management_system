@@ -78,7 +78,7 @@ export default function DueDatesPage() {
     return ''
   }
 
-  const getStatus = (client: any): { text: string; color: string } => {
+  const getPaymentStatus = (client: any): { text: string; color: string } => {
     const dueDate = getDueDate(client)
     if (!dueDate) return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
     
@@ -116,7 +116,7 @@ export default function DueDatesPage() {
   const filteredClients = filteredByLocation
     .filter((c: any) => c.installation_date || c.due_date)
     .filter((c: any) => {
-      const status = getStatus(c)
+      const status = getPaymentStatus(c)
       const dueDate = getDueDate(c)
       
       if (statusFilter === 'all') return true
@@ -142,9 +142,9 @@ export default function DueDatesPage() {
   useEffect(() => { setCurrentPage(1) }, [statusFilter, locFilter])
 
   const stats = {
-    paid: clients.filter(c => getStatus(c).text === 'Paid').length,
-    unpaid: clients.filter(c => getStatus(c).text === 'Unpaid').length,
-    unsettled: clients.filter(c => getStatus(c).text === 'Unsettled').length,
+    paid: clients.filter(c => getPaymentStatus(c).text === 'Paid').length,
+    unpaid: clients.filter(c => getPaymentStatus(c).text === 'Unpaid').length,
+    unsettled: clients.filter(c => getPaymentStatus(c).text === 'Unsettled').length,
   }
 
   const uniqueLocations = [...new Set(clients.map(c => c.location).filter(Boolean))]
@@ -231,7 +231,7 @@ export default function DueDatesPage() {
           </thead>
           <tbody className="divide-y divide-slate-700">
             {currentData.map((client: any) => {
-              const paymentStatus = getStatus(client)
+              const paymentStatus = getPaymentStatus(client)
               const clientStatus = client.status || 'Active'
               const isProcessing = processingId === client.id
               const dueDate = getDueDate(client)
