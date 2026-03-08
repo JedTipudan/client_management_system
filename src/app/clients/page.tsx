@@ -17,7 +17,6 @@ export default function ClientsPage() {
   const [user, setUser] = useState<any>(null)
   const [isAdmin, setIsAdmin] = useState(false)
 
-  // Helper to get today's date as YYYY-MM-DD string in local time
   const getTodayStr = () => {
     const today = new Date()
     const year = today.getFullYear()
@@ -49,8 +48,6 @@ export default function ClientsPage() {
     setLocations(locRes.data || [])
   }
 
-  // FIXED: Calculate due date without timezone shifting
-  // This ensures Feb 3 -> March 3 exactly, not March 2 or 4
   const calculateDueDate = (installDate: string) => {
     if (!installDate) return ''
     const [year, month, day] = installDate.split('-').map(Number)
@@ -63,7 +60,6 @@ export default function ClientsPage() {
       newYear = year + 1
     }
 
-    // Handle month-end days (e.g., Jan 31 -> Feb 28)
     const daysInNewMonth = new Date(newYear, newMonth, 0).getDate()
     const finalDay = Math.min(day, daysInNewMonth)
 
@@ -71,7 +67,6 @@ export default function ClientsPage() {
   }
 
   const getAutoStatus = (client: any) => {
-    // Determine due date: if explicit due_date exists, use it, otherwise calc from install
     let dueDateVal = client.due_date
     if (!dueDateVal && client.installation_date) {
         dueDateVal = calculateDueDate(client.installation_date)
@@ -79,20 +74,16 @@ export default function ClientsPage() {
 
     if (!dueDateVal) return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
     
-    // Use string comparison to avoid timezone issues
     const todayStr = getTodayStr()
     const dueDateObj = new Date(dueDateVal + 'T00:00:00')
     const todayObj = new Date(todayStr + 'T00:00:00')
     
-    // If due date is in the future, it's Active
     if (dueDateObj > todayObj) {
       return { text: 'Active', color: 'bg-green-500/10 text-green-500' }
     }
     
-    // Calculate days overdue
     const daysOverdue = Math.floor((todayObj.getTime() - dueDateObj.getTime()) / (1000 * 60 * 60 * 24))
     
-    // LOGIC: If overdue >= 30 days, it becomes Unsettled
     if (daysOverdue >= 30) return { text: 'Unsettled', color: 'bg-orange-500/10 text-orange-500' }
     return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
   }
@@ -100,7 +91,8 @@ export default function ClientsPage() {
   const filteredClients = clients
     .filter(c => locFilter === 'All' || c.location === locFilter)
     .filter(c => c.client_name.toLowerCase().includes(search.toLowerCase()) || c.contact_number?.includes(search))
-    .sort((a, b) => new Date(a.installation_date).getTime() - new Date(b.installation_date).getTime())
+    // SORTING: Newest to Oldest (Biggest to Lowest)
+    .sort((a, b) => new Date(b.installation_date || b.due_date).getTime() - new Date(a.installation_date || a.due_date).getTime())
 
   const totalItems = filteredClients.length
   const totalPages = Math.ceil(totalItems / itemsPerPage)

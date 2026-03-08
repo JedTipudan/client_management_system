@@ -116,11 +116,11 @@ export default function DueDatesPage() {
       
       return true
     })
-    // SORTING: Match ClientsPage (sort by installation date)
+    // SORTING: Newest to Oldest (Biggest to Lowest) - Matches ClientsPage
     .sort((a, b) => {
       const dateA = a.installation_date || a.due_date || ''
       const dateB = b.installation_date || b.due_date || ''
-      return new Date(dateA).getTime() - new Date(dateB).getTime()
+      return new Date(dateB).getTime() - new Date(dateA).getTime()
     })
 
   const totalItems = filteredClients.length
