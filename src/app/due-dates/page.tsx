@@ -25,18 +25,19 @@ export default function DueDatesPage() {
     }
   }
 
-  // Helper to get due date year and month
-  const getDueYearMonth = (dateStr: string) => {
-    const [year, month, day] = dateStr.split('-').map(Number)
-    return { year, month }
-  }
-
+  // Helper to get today's date as YYYY-MM-DD string in local time
   const getTodayStr = () => {
     const today = new Date()
     const year = today.getFullYear()
     const month = String(today.getMonth() + 1).padStart(2, '0')
     const day = String(today.getDate()).padStart(2, '0')
     return `${year}-${month}-${day}`
+  }
+
+  // Helper to get due date year and month
+  const getDueYearMonth = (dateStr: string) => {
+    const [year, month, day] = dateStr.split('-').map(Number)
+    return { year, month }
   }
 
   useEffect(() => {
@@ -84,14 +85,18 @@ export default function DueDatesPage() {
     const dueDate = getDueDate(client)
     if (!dueDate) return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
     
-    const today = getCurrentYearMonth()
-    const due = getDueYearMonth(dueDate)
+    const todayStr = getTodayStr()
+    const today = new Date(todayStr + 'T00:00:00')
+    const dueDateObj = new Date(dueDate + 'T00:00:00')
+    
+    const todayYearMonth = getCurrentYearMonth()
+    const dueYearMonth = getDueYearMonth(dueDate)
     
     // Calculate months overdue using CALENDAR MONTHS
-    const monthsOverdue = (today.year - due.year) * 12 + (today.month - due.month)
+    const monthsOverdue = (todayYearMonth.year - dueYearMonth.year) * 12 + (todayYearMonth.month - dueYearMonth.month)
     
     // Future due date = Active
-    if (monthsOverdue < 0) {
+    if (dueDateObj > today) {
       return { text: 'Active', color: 'bg-green-500/10 text-green-500' }
     }
     
@@ -99,6 +104,8 @@ export default function DueDatesPage() {
     if (monthsOverdue >= 1) {
       return { text: 'Unsettled', color: 'bg-orange-500/10 text-orange-500' }
     }
+    
+    // Due date is in current month AND has passed = Unpaid
     return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
   }
 
@@ -117,13 +124,15 @@ export default function DueDatesPage() {
     .filter((c: any) => c.installation_date || c.due_date)
     .filter((c: any) => {
       const status = getStatus(c)
+      const dueDate = getDueDate(c)
+      const todayStr = getTodayStr()
       
       if (statusFilter === 'all') return true
       if (statusFilter === 'paid') return status.text === 'Active'
       if (statusFilter === 'unsettled') return status.text === 'Unsettled'
       
       if (statusFilter === 'unpaid') {
-        const dueDate = getDueDate(c)
+        // Unpaid = Due date is in current month AND due date <= today
         return status.text === 'Unpaid' && isThisMonth(dueDate)
       }
       
