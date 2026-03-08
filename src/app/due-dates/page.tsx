@@ -245,6 +245,9 @@ export default function DueDatesPage() {
               const isProcessing = processingId === client.id
               const dueDate = getDueDate(client)
               
+              // Button should only be enabled when payment status is Unpaid or Unsettled
+              const isMarkAsPaidEnabled = paymentStatus.text === 'Unpaid' || paymentStatus.text === 'Unsettled'
+              
               return (
                 <tr key={client.id} className="hover:bg-slate-700/50">
                   <td className="px-6 py-4">
@@ -263,7 +266,15 @@ export default function DueDatesPage() {
                   </td>
                   <td className="px-6 py-4 text-right">
                     {isAdmin && (
-                      <button onClick={() => handleMarkAsPaid(client)} disabled={isProcessing} className="inline-flex items-center gap-1 px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold rounded disabled:opacity-50">
+                      <button 
+                        onClick={() => handleMarkAsPaid(client)} 
+                        disabled={isProcessing || !isMarkAsPaidEnabled} 
+                        className={`inline-flex items-center gap-1 px-3 py-1.5 text-white text-xs font-bold rounded disabled:opacity-50 ${
+                          isMarkAsPaidEnabled 
+                            ? 'bg-teal-600 hover:bg-teal-500' 
+                            : 'bg-slate-600 cursor-not-allowed'
+                        }`}
+                      >
                         {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
                         {isProcessing ? 'Processing...' : 'Mark Paid'}
                       </button>
