@@ -16,28 +16,25 @@ export default function DueDatesPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 
-  // Helper to get current year and month
   const getCurrentYearMonth = () => {
     const today = new Date()
     return {
       year: today.getFullYear(),
-      month: today.getMonth() + 1 // 1-12
+      month: today.getMonth() + 1
     }
   }
 
-  // Helper to get today's date as YYYY-MM-DD string in local time
+  const getDueYearMonth = (dateStr: string) => {
+    const [year, month, day] = dateStr.split('-').map(Number)
+    return { year, month }
+  }
+
   const getTodayStr = () => {
     const today = new Date()
     const year = today.getFullYear()
     const month = String(today.getMonth() + 1).padStart(2, '0')
     const day = String(today.getDate()).padStart(2, '0')
     return `${year}-${month}-${day}`
-  }
-
-  // Helper to get due date year and month
-  const getDueYearMonth = (dateStr: string) => {
-    const [year, month, day] = dateStr.split('-').map(Number)
-    return { year, month }
   }
 
   useEffect(() => {
@@ -92,20 +89,16 @@ export default function DueDatesPage() {
     const todayYearMonth = getCurrentYearMonth()
     const dueYearMonth = getDueYearMonth(dueDate)
     
-    // Calculate months overdue using CALENDAR MONTHS
     const monthsOverdue = (todayYearMonth.year - dueYearMonth.year) * 12 + (todayYearMonth.month - dueYearMonth.month)
     
-    // Future due date = Active
     if (dueDateObj > today) {
-      return { text: 'Active', color: 'bg-green-500/10 text-green-500' }
+      return { text: 'Paid', color: 'bg-green-500/10 text-green-500' }
     }
     
-    // LOGIC: If due date month is in the past (any month), it becomes Unsettled
     if (monthsOverdue >= 1) {
       return { text: 'Unsettled', color: 'bg-orange-500/10 text-orange-500' }
     }
     
-    // Due date is in current month AND has passed = Unpaid
     return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
   }
 
@@ -125,14 +118,12 @@ export default function DueDatesPage() {
     .filter((c: any) => {
       const status = getStatus(c)
       const dueDate = getDueDate(c)
-      const todayStr = getTodayStr()
       
       if (statusFilter === 'all') return true
-      if (statusFilter === 'paid') return status.text === 'Active'
+      if (statusFilter === 'paid') return status.text === 'Paid'
       if (statusFilter === 'unsettled') return status.text === 'Unsettled'
       
       if (statusFilter === 'unpaid') {
-        // Unpaid = Due date is in current month AND due date <= today
         return status.text === 'Unpaid' && isThisMonth(dueDate)
       }
       
@@ -151,7 +142,7 @@ export default function DueDatesPage() {
   useEffect(() => { setCurrentPage(1) }, [statusFilter, locFilter])
 
   const stats = {
-    paid: clients.filter(c => getStatus(c).text === 'Active').length,
+    paid: clients.filter(c => getStatus(c).text === 'Paid').length,
     unpaid: clients.filter(c => getStatus(c).text === 'Unpaid').length,
     unsettled: clients.filter(c => getStatus(c).text === 'Unsettled').length,
   }
@@ -200,7 +191,7 @@ export default function DueDatesPage() {
 
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-xl">
-          <p className="text-green-400 font-bold">Active</p>
+          <p className="text-green-400 font-bold">Paid</p>
           <p className="text-2xl font-bold">{stats.paid}</p>
         </div>
         <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
@@ -220,7 +211,7 @@ export default function DueDatesPage() {
         </select>
 
         <button onClick={() => setStatusFilter('all')} className={`px-4 py-2 rounded-lg ${statusFilter === 'all' ? 'bg-cyan-600' : 'bg-slate-700'}`}>All</button>
-        <button onClick={() => setStatusFilter('paid')} className={`px-4 py-2 rounded-lg ${statusFilter === 'paid' ? 'bg-green-600' : 'bg-slate-700'}`}>Active</button>
+        <button onClick={() => setStatusFilter('paid')} className={`px-4 py-2 rounded-lg ${statusFilter === 'paid' ? 'bg-green-600' : 'bg-slate-700'}`}>Paid</button>
         <button onClick={() => setStatusFilter('unpaid')} className={`px-4 py-2 rounded-lg ${statusFilter === 'unpaid' ? 'bg-red-600' : 'bg-slate-700'}`}>Unpaid</button>
         <button onClick={() => setStatusFilter('unsettled')} className={`px-4 py-2 rounded-lg ${statusFilter === 'unsettled' ? 'bg-orange-600' : 'bg-slate-700'}`}>Unsettled</button>
       </div>
@@ -233,13 +224,15 @@ export default function DueDatesPage() {
               <th className="px-6 py-4">Location</th>
               <th className="px-6 py-4">Plan</th>
               <th className="px-6 py-4">Due Date</th>
+              <th className="px-6 py-4">Payment Status</th>
               <th className="px-6 py-4">Status</th>
               <th className="px-6 py-4 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-700">
             {currentData.map((client: any) => {
-              const status = getStatus(client)
+              const paymentStatus = getStatus(client)
+              const clientStatus = client.status || 'Active'
               const isProcessing = processingId === client.id
               const dueDate = getDueDate(client)
               
@@ -250,8 +243,13 @@ export default function DueDatesPage() {
                   <td className="px-6 py-4">{client.plans?.name} (₱{client.plans?.price})</td>
                   <td className="px-6 py-4">{dueDate}</td>
                   <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${status.color}`}>
-                      {status.text}
+                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${paymentStatus.color}`}>
+                      {paymentStatus.text}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${clientStatus === 'Active' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                      {clientStatus}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
@@ -266,7 +264,7 @@ export default function DueDatesPage() {
               )
             })}
             {currentData.length === 0 && (
-              <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-500">No clients found</td></tr>
+              <tr><td colSpan={7} className="px-6 py-8 text-center text-slate-500">No clients found</td></tr>
             )}
           </tbody>
         </table>

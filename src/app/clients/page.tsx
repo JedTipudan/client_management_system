@@ -12,33 +12,17 @@ export default function ClientsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
   const [showModal, setShowModal] = useState(false)
-  const [formData, setFormData] = useState({ client_name: '', contact_number: '', location: '', plan_id: '', installation_date: '', notes: '' })
+  const [formData, setFormData] = useState({ 
+    client_name: '', 
+    contact_number: '', 
+    location: '', 
+    plan_id: '', 
+    installation_date: '', 
+    status: 'Active' 
+  })
   const [editId, setEditId] = useState<any>(null)
   const [user, setUser] = useState<any>(null)
   const [isAdmin, setIsAdmin] = useState(false)
-
-  // Helper to get current year and month
-  const getCurrentYearMonth = () => {
-    const today = new Date()
-    return {
-      year: today.getFullYear(),
-      month: today.getMonth() + 1 // 1-12
-    }
-  }
-
-  // Helper to get due date year and month
-  const getDueYearMonth = (dateStr: string) => {
-    const [year, month, day] = dateStr.split('-').map(Number)
-    return { year, month }
-  }
-
-  const getTodayStr = () => {
-    const today = new Date()
-    const year = today.getFullYear()
-    const month = String(today.getMonth() + 1).padStart(2, '0')
-    const day = String(today.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
-  }
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -81,32 +65,6 @@ export default function ClientsPage() {
     return `${newYear}-${String(newMonth).padStart(2, '0')}-${String(finalDay).padStart(2, '0')}`
   }
 
-  const getAutoStatus = (client: any) => {
-    let dueDateVal = client.due_date
-    if (!dueDateVal && client.installation_date) {
-        dueDateVal = calculateDueDate(client.installation_date)
-    }
-
-    if (!dueDateVal) return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
-    
-    const today = getCurrentYearMonth()
-    const due = getDueYearMonth(dueDateVal)
-    
-    // Calculate months overdue using CALENDAR MONTHS
-    const monthsOverdue = (today.year - due.year) * 12 + (today.month - due.month)
-    
-    // Future due date = Active
-    if (monthsOverdue < 0) {
-      return { text: 'Active', color: 'bg-green-500/10 text-green-500' }
-    }
-    
-    // LOGIC: If due date month is in the past (any month), it becomes Unsettled
-    if (monthsOverdue >= 1) {
-      return { text: 'Unsettled', color: 'bg-orange-500/10 text-orange-500' }
-    }
-    return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
-  }
-
   const filteredClients = clients
     .filter(c => locFilter === 'All' || c.location === locFilter)
     .filter(c => c.client_name.toLowerCase().includes(search.toLowerCase()) || c.contact_number?.includes(search))
@@ -145,7 +103,14 @@ export default function ClientsPage() {
   }
 
   const openEdit = (client: any) => {
-    setFormData({ client_name: client.client_name, contact_number: client.contact_number, location: client.location, plan_id: client.plan_id, installation_date: client.installation_date || '', notes: client.notes || '' })
+    setFormData({ 
+      client_name: client.client_name, 
+      contact_number: client.contact_number, 
+      location: client.location, 
+      plan_id: client.plan_id, 
+      installation_date: client.installation_date || '', 
+      status: client.status || 'Active' 
+    })
     setEditId(client.id)
     setShowModal(true)
   }
@@ -159,7 +124,7 @@ export default function ClientsPage() {
             <RefreshCw size={18} /> Refresh
           </button>
           {isAdmin && (
-            <button onClick={() => { setEditId(null); setFormData({ client_name: '', contact_number: '', location: '', plan_id: '', installation_date: '', notes: '' }); setShowModal(true) }} className="bg-cyan-600 hover:bg-cyan-700 px-4 py-2 rounded-lg flex items-center gap-2 font-semibold">
+            <button onClick={() => { setEditId(null); setFormData({ client_name: '', contact_number: '', location: '', plan_id: '', installation_date: '', status: 'Active' }); setShowModal(true) }} className="bg-cyan-600 hover:bg-cyan-700 px-4 py-2 rounded-lg flex items-center gap-2 font-semibold">
               <Plus size={20} /> Add Client
             </button>
           )}
@@ -196,7 +161,7 @@ export default function ClientsPage() {
           </thead>
           <tbody className="divide-y divide-slate-700">
             {currentData.map((client: any) => {
-              const status = getAutoStatus(client)
+              const clientStatus = client.status || 'Active'
               return (
                 <tr key={client.id} className="hover:bg-slate-700/50 transition">
                   <td className="px-6 py-4 font-medium">{client.client_name}</td>
@@ -205,7 +170,9 @@ export default function ClientsPage() {
                   <td className="px-6 py-4">{client.plans?.name} (₱{client.plans?.price})</td>
                   <td className="px-6 py-4">{client.installation_date || '-'}</td>
                   <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${status.color}`}>{status.text}</span>
+                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${clientStatus === 'Active' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                      {clientStatus}
+                    </span>
                   </td>
                   <td className="px-6 py-4 text-right">
                     {isAdmin && (
@@ -250,7 +217,7 @@ export default function ClientsPage() {
               <div><label className="block text-sm text-slate-400 mb-1">Location *</label><select className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})}><option value="">Select</option>{locations.map((loc: any) => <option key={loc.id} value={loc.name}>{loc.name}</option>)}</select></div>
               <div><label className="block text-sm text-slate-400 mb-1">Plan *</label><select className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white" value={formData.plan_id} onChange={e => setFormData({...formData, plan_id: e.target.value})}><option value="">Select</option>{plans.map((p: any) => <option key={p.id} value={p.id}>{p.name} - ₱{p.price}</option>)}</select></div>
               <div><label className="block text-sm text-slate-400 mb-1">Installation Date *</label><input type="date" className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white" value={formData.installation_date} onChange={e => setFormData({...formData, installation_date: e.target.value})} /><p className="text-xs text-slate-500 mt-1">Due date will be auto: Installation + 1 month</p></div>
-              <div><label className="block text-sm text-slate-400 mb-1">Notes</label><textarea className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white" rows={3} value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})}></textarea></div>
+              <div><label className="block text-sm text-slate-400 mb-1">Status *</label><select className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}><option value="Active">Active</option><option value="Inactive">Inactive</option></select></div>
               <div className="flex justify-end gap-3 mt-6">
                 <button onClick={() => setShowModal(false)} className="px-4 py-2 rounded-lg text-slate-300 hover:bg-slate-700">Cancel</button>
                 <button onClick={handleSave} className="bg-cyan-600 hover:bg-cyan-700 px-6 py-2 rounded-lg font-bold">{editId ? 'Update' : 'Save'}</button>
