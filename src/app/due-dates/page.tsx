@@ -102,8 +102,8 @@ export default function DueDatesPage() {
       return { text: 'Unsettled', color: 'bg-orange-500/10 text-orange-500' }
     }
     
-    // If due date has passed but not overdue (same month) → Paid (already paid)
-    return { text: 'Paid', color: 'bg-green-500/10 text-green-500' }
+    // If due date has passed (same month) → Unpaid (not yet paid)
+    return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
   }
 
   const isDueDateInCurrentMonth = (dateStr: string) => {
