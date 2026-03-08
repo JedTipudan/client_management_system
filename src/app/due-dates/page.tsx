@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
-import { CheckCircle, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { CheckCircle, Loader2, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
 
 export default function DueDatesPage() {
   const [clients, setClients] = useState<any[]>([])
@@ -116,7 +116,12 @@ export default function DueDatesPage() {
       
       return true
     })
-    .sort((a, b) => a.client_name.localeCompare(b.client_name))
+    // SORTING: Match ClientsPage (sort by installation date)
+    .sort((a, b) => {
+      const dateA = a.installation_date || a.due_date || ''
+      const dateB = b.installation_date || b.due_date || ''
+      return new Date(dateA).getTime() - new Date(dateB).getTime()
+    })
 
   const totalItems = filteredClients.length
   const totalPages = Math.ceil(totalItems / itemsPerPage)
@@ -166,7 +171,13 @@ export default function DueDatesPage() {
 
   return (
     <div>
-      <h2 className="text-3xl font-bold mb-8">Due Dates List (A-Z)</h2>
+      {/* HEADER: Matches ClientsPage layout with Refresh button */}
+      <div className="flex flex-col md:flex-row justify-between mb-6 gap-4">
+        <h2 className="text-3xl font-bold">Due Dates List</h2>
+        <button onClick={fetchData} className="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg flex items-center gap-2 font-semibold text-white">
+          <RefreshCw size={18} /> Refresh
+        </button>
+      </div>
 
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-xl">
