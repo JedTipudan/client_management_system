@@ -43,7 +43,6 @@ export default function DueDatesPage() {
   }
 
   // FIXED: Calculate due date without timezone shifting
-  // This ensures Feb 3 -> March 3 exactly, not March 2 or 4
   const calculateDueDate = (installDate: string) => {
     if (!installDate) return ''
     const [year, month, day] = installDate.split('-').map(Number)
@@ -56,7 +55,6 @@ export default function DueDatesPage() {
       newYear = year + 1
     }
 
-    // Handle month-end days (e.g., Jan 31 -> Feb 28)
     const daysInNewMonth = new Date(newYear, newMonth, 0).getDate()
     const finalDay = Math.min(day, daysInNewMonth)
 
@@ -74,19 +72,23 @@ export default function DueDatesPage() {
     if (!dueDate) return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500', monthsOverdue: 0 }
     
     const todayStr = getTodayStr()
+    const today = new Date(todayStr + 'T00:00:00')
     const dueDateObj = new Date(dueDate + 'T00:00:00')
-    const todayObj = new Date(todayStr + 'T00:00:00')
     
     // Future due date = Active
-    if (dueDateObj > todayObj) {
+    if (dueDateObj > today) {
       return { text: 'Active', color: 'bg-green-500/10 text-green-500', monthsOverdue: 0 }
     }
     
-    // Calculate months overdue (using 30 days per month approximation)
-    const daysOverdue = Math.floor((todayObj.getTime() - dueDateObj.getTime()) / (1000 * 60 * 60 * 24))
-    const monthsOverdue = Math.floor(daysOverdue / 30)
+    // Calculate months overdue using CALENDAR MONTHS (not 30 days)
+    const todayYear = today.getFullYear()
+    const todayMonth = today.getMonth()
+    const dueYear = dueDateObj.getFullYear()
+    const dueMonth = dueDateObj.getMonth()
     
-    // LOGIC: If overdue >= 1 month, it becomes Unsettled
+    const monthsOverdue = (todayYear - dueYear) * 12 + (todayMonth - dueMonth)
+    
+    // LOGIC: If due date month is in the past (any month), it becomes Unsettled
     if (monthsOverdue >= 1) {
       return { text: `Unsettled (${monthsOverdue} mo)`, color: 'bg-orange-500/10 text-orange-500', monthsOverdue }
     }
@@ -120,7 +122,6 @@ export default function DueDatesPage() {
       
       return true
     })
-    // SORTING: Newest to Oldest (Biggest to Lowest) - Matches ClientsPage
     .sort((a, b) => {
       const dateA = a.installation_date || a.due_date || ''
       const dateB = b.installation_date || b.due_date || ''
@@ -154,7 +155,6 @@ export default function DueDatesPage() {
       newYear = year + 1
     }
 
-    // FIXED: Correct logic to get days in the NEW month
     const daysInNewMonth = new Date(newYear, newMonth + 1, 0).getDate()
     const finalDay = Math.min(day, daysInNewMonth)
     const newDueDateStr = `${newYear}-${String(newMonth).padStart(2, '0')}-${String(finalDay).padStart(2, '0')}`
@@ -175,7 +175,6 @@ export default function DueDatesPage() {
 
   return (
     <div>
-      {/* HEADER: Matches ClientsPage layout with Refresh button */}
       <div className="flex flex-col md:flex-row justify-between mb-6 gap-4">
         <h2 className="text-3xl font-bold">Due Dates List</h2>
         <button onClick={fetchData} className="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg flex items-center gap-2 font-semibold text-white">
