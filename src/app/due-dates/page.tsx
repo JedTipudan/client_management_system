@@ -255,7 +255,7 @@ export default function DueDatesPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    {isAdmin && status.text !== 'Active' && (
+                    {isAdmin && (
                       <button onClick={() => handleMarkAsPaid(client)} disabled={isProcessing} className="inline-flex items-center gap-1 px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold rounded disabled:opacity-50">
                         {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
                         {isProcessing ? 'Processing...' : 'Mark Paid'}
