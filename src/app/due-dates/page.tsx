@@ -24,17 +24,9 @@ export default function DueDatesPage() {
     }
   }
 
-  const getDueYearMonth = (dateStr: string) => {
-    const [year, month, day] = dateStr.split('-').map(Number)
-    return { year, month }
-  }
-
-  const getTodayStr = () => {
+  const getTodayDay = () => {
     const today = new Date()
-    const year = today.getFullYear()
-    const month = String(today.getMonth() + 1).padStart(2, '0')
-    const day = String(today.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
+    return today.getDate()
   }
 
   useEffect(() => {
@@ -87,9 +79,9 @@ export default function DueDatesPage() {
     const dueDateObj = new Date(dueDate + 'T00:00:00')
     
     const todayYearMonth = getCurrentYearMonth()
-    const dueYearMonth = getDueYearMonth(dueDate)
+    const [dueYear, dueMonth] = dueDate.split('-').map(Number)
     
-    const monthsOverdue = (todayYearMonth.year - dueYearMonth.year) * 12 + (todayYearMonth.month - dueYearMonth.month)
+    const monthsOverdue = (todayYearMonth.year - dueYear) * 12 + (todayYearMonth.month - dueMonth)
     
     if (dueDateObj > today) {
       return { text: 'Paid', color: 'bg-green-500/10 text-green-500' }
@@ -102,10 +94,22 @@ export default function DueDatesPage() {
     return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
   }
 
-  const isThisMonth = (dateStr: string) => {
+  const isDueDateInCurrentMonth = (dateStr: string) => {
     const today = getCurrentYearMonth()
-    const due = getDueYearMonth(dateStr)
-    return today.year === due.year && today.month === due.month
+    const [dueYear, dueMonth, dueDay] = dateStr.split('-').map(Number)
+    
+    // Check if due date is in current month AND day is <= today
+    return today.year === dueYear && 
+           today.month === dueMonth && 
+           dueDay <= getTodayDay()
+  }
+
+  const getTodayStr = () => {
+    const today = new Date()
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, '0')
+    const day = String(today.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
   }
 
   const filteredByLocation = clients.filter((c: any) => {
@@ -124,7 +128,8 @@ export default function DueDatesPage() {
       if (statusFilter === 'unsettled') return status.text === 'Unsettled'
       
       if (statusFilter === 'unpaid') {
-        return status.text === 'Unpaid' && isThisMonth(dueDate)
+        // Only show unpaid if due date is in current month so far
+        return status.text === 'Unpaid' && isDueDateInCurrentMonth(dueDate)
       }
       
       return true
