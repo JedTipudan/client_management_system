@@ -1,33 +1,80 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { supabase } from '../../lib/supabaseClient'
-import { CheckCircle, Loader2, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
+import { 
+  CheckCircle, 
+  Loader2, 
+  ChevronLeft, 
+  ChevronRight, 
+  RefreshCw, 
+  Search, 
+  Bell, 
+  Zap, 
+  Clock, 
+  AlertCircle,
+  X,
+  Activity
+} from 'lucide-react'
+
+// --- Toast Notification Component ---
+const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 'error', onClose: () => void }) => {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 3000)
+    return () => clearTimeout(timer)
+  }, [onClose])
+
+  return (
+    <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-2xl border backdrop-blur-xl animate-slide-up ${
+      type === 'success' ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-red-500/10 border-red-500/30 text-red-400'
+    }`}>
+      <div className={`p-1 rounded-full ${type === 'success' ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
+        {type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
+      </div>
+      <span className="text-sm font-semibold tracking-wide">{message}</span>
+      <button onClick={onClose} className="ml-2 hover:opacity-70 transition-opacity">
+        <X size={14} />
+      </button>
+    </div>
+  )
+}
+
+// --- Skeleton Loader Component ---
+const SkeletonRow = () => (
+  <tr className="animate-pulse">
+    <td className="px-6 py-4"><div className="h-4 bg-slate-700/50 rounded w-32"></div></td>
+    <td className="px-6 py-4"><div className="h-4 bg-slate-700/50 rounded w-16"></div></td>
+    <td className="px-6 py-4"><div className="h-4 bg-slate-700/50 rounded w-24"></div></td>
+    <td className="px-6 py-4"><div className="h-4 bg-slate-700/50 rounded w-20"></div></td>
+    <td className="px-6 py-4"><div className="h-4 bg-slate-700/50 rounded w-24"></div></td>
+    <td className="px-6 py-4"><div className="h-4 bg-slate-700/50 rounded w-20"></div></td>
+    <td className="px-6 py-4"><div className="h-8 bg-slate-700/50 rounded w-24 ml-auto"></div></td>
+  </tr>
+)
 
 export default function DueDatesPage() {
   const [clients, setClients] = useState<any[]>([])
-  const [statusFilter, setStatusFilter] = useState('unpaid') // Default to unpaid
+  const [statusFilter, setStatusFilter] = useState('unpaid')
   const [locFilter, setLocFilter] = useState('All')
+  const [searchQuery, setSearchQuery] = useState('')
   const [processingId, setProcessingId] = useState<string | null>(null)
+  const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isLive, setIsLive] = useState(false)
+  const [lastSync, setLastSync] = useState<Date>(new Date())
 
   const [user, setUser] = useState<any>(null)
   const [isAdmin, setIsAdmin] = useState(false)
-
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 
+  // --- Helpers ---
   const getCurrentYearMonth = () => {
     const today = new Date()
-    return {
-      year: today.getFullYear(),
-      month: today.getMonth() + 1
-    }
+    return { year: today.getFullYear(), month: today.getMonth() + 1 }
   }
 
-  const getTodayDay = () => {
-    const today = new Date()
-    return today.getDate()
-  }
+  const getTodayDay = () => new Date().getDate()
 
   const getTodayStr = () => {
     const today = new Date()
@@ -37,6 +84,7 @@ export default function DueDatesPage() {
     return `${year}-${month}-${day}`
   }
 
+  // --- Supabase Auth & Realtime ---
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       const userData = data.user
@@ -47,40 +95,60 @@ export default function DueDatesPage() {
     })
   }, [])
 
-  useEffect(() => { fetchData() }, [])
+  // Realtime Subscription for "Live" Feel
+  useEffect(() => {
+    const channel = supabase
+      .channel('due_dates_channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clients' }, (payload) => {
+        console.log('Change received!', payload)
+        fetchData()
+        setLastSync(new Date())
+        setIsLive(true)
+        setTimeout(() => setIsLive(false), 2000)
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [])
 
   const fetchData = async () => {
+    setIsLoading(true)
     const { data } = await supabase.from('clients').select('*, plans(name, price)').order('client_name')
     setClients(data || [])
+    setIsLoading(false)
+    setLastSync(new Date())
   }
 
+  useEffect(() => { fetchData() }, [])
+
+  // --- Logic ---
   const calculateDueDate = (installDate: string) => {
     if (!installDate) return ''
     const [year, month, day] = installDate.split('-').map(Number)
-    
     let newMonth = month + 1
     let newYear = year
-    
-    if (newMonth > 12) {
-      newMonth = 1
-      newYear = year + 1
-    }
-
+    if (newMonth > 12) { newMonth = 1; newYear = year + 1 }
     const daysInNewMonth = new Date(newYear, newMonth, 0).getDate()
     const finalDay = Math.min(day, daysInNewMonth)
-
     return `${newYear}-${String(newMonth).padStart(2, '0')}-${String(finalDay).padStart(2, '0')}`
   }
 
-  const getDueDate = (client: any) => {
-    if (client.due_date) return client.due_date
-    if (client.installation_date) return calculateDueDate(client.installation_date)
-    return ''
+  const getDueDate = (client: any) => client.due_date || calculateDueDate(client.installation_date) || ''
+
+  const getDaysRemaining = (dueDateStr: string) => {
+    if (!dueDateStr) return null
+    const today = new Date(getTodayStr())
+    const due = new Date(dueDateStr)
+    const diffTime = due.getTime() - today.getTime()
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    return diffDays
   }
 
-  const getPaymentStatus = (client: any): { text: string; color: string } => {
+  const getPaymentStatus = (client: any) => {
     const dueDate = getDueDate(client)
-    if (!dueDate) return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
+    if (!dueDate) return { text: 'Pending', color: 'bg-slate-500/10 text-slate-400 border-slate-500/20' }
     
     const todayStr = getTodayStr()
     const today = new Date(todayStr + 'T00:00:00')
@@ -88,76 +156,70 @@ export default function DueDatesPage() {
     
     const todayYearMonth = getCurrentYearMonth()
     const [dueYear, dueMonth] = dueDate.split('-').map(Number)
-    
     const monthsOverdue = (todayYearMonth.year - dueYear) * 12 + (todayYearMonth.month - dueMonth)
     
-    // FIXED LOGIC:
-    // If due date is in the FUTURE → Paid (already paid for this month)
-    if (dueDateObj > today) {
-      return { text: 'Paid', color: 'bg-green-500/10 text-green-500' }
-    }
-    
-    // If due date has passed and overdue by 1+ months → Unsettled
-    if (monthsOverdue >= 1) {
-      return { text: 'Unsettled', color: 'bg-orange-500/10 text-orange-500' }
-    }
-    
-    // If due date has passed (same month) → Unpaid (not yet paid for this month)
-    return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
+    if (dueDateObj > today) return { text: 'Paid', color: 'bg-green-500/10 text-green-400 border-green-500/20' }
+    if (monthsOverdue >= 1) return { text: 'Unsettled', color: 'bg-orange-500/10 text-orange-400 border-orange-500/20' }
+    return { text: 'Unpaid', color: 'bg-red-500/10 text-red-400 border-red-500/20' }
   }
 
   const isDueDateInCurrentMonth = (dateStr: string) => {
     const today = getCurrentYearMonth()
     const [dueYear, dueMonth, dueDay] = dateStr.split('-').map(Number)
+    return today.year === dueYear && today.month === dueMonth && dueDay <= getTodayDay()
+  }  // --- Filtering & Sorting ---
+  const filteredClients = useMemo(() => {
+    let data = clients.filter((c: any) => c.installation_date || c.due_date)
     
-    // Check if due date is in current month AND day is <= today
-    return today.year === dueYear && 
-           today.month === dueMonth && 
-           dueDay <= getTodayDay()
-  }
+    // Search
+    if (searchQuery) {
+      data = data.filter((c: any) => c.client_name.toLowerCase().includes(searchQuery.toLowerCase()))
+    }
 
-  const filteredByLocation = clients.filter((c: any) => {
-    if (locFilter === 'All') return true
-    return c.location === locFilter
-  })
+    // Location
+    if (locFilter !== 'All') {
+      data = data.filter((c: any) => c.location === locFilter)
+    }
 
-  const filteredClients = filteredByLocation
-    .filter((c: any) => c.installation_date || c.due_date)
-    .filter((c: any) => {
+    // Status
+    data = data.filter((c: any) => {
       const status = getPaymentStatus(c)
       const dueDate = getDueDate(c)
-      
       if (statusFilter === 'all') return true
       if (statusFilter === 'paid') return status.text === 'Paid'
       if (statusFilter === 'unsettled') return status.text === 'Unsettled'
-      
-      if (statusFilter === 'unpaid') {
-        // Only show unpaid if due date is in current month so far
-        return status.text === 'Unpaid' && isDueDateInCurrentMonth(dueDate)
-      }
-      
+      if (statusFilter === 'unpaid') return status.text === 'Unpaid' && isDueDateInCurrentMonth(dueDate)
       return true
     })
-    .sort((a, b) => {
-      // SORT BY DATE: January to December (Ascending Order)
-      const dateA = a.installation_date || a.due_date || ''
+
+    // Sort: Urgency (Unpaid/Unsettled first, then by Date)
+    return data.sort((a, b) => {
+      const statusA = getPaymentStatus(a).text
+      const statusB = getPaymentStatus(b).text
+      if (statusA === 'Unsettled' && statusB !== 'Unsettled') return -1
+      if (statusB === 'Unsettled' && statusA !== 'Unsettled') return 1
+      if (statusA === 'Unpaid' && statusB !== 'Unpaid') return -1
+      if (statusB === 'Unpaid' && statusA !== 'Unpaid') return 1
+      
+            const dateA = a.installation_date || a.due_date || ''
       const dateB = b.installation_date || b.due_date || ''
       return new Date(dateA).getTime() - new Date(dateB).getTime()
     })
+  }, [clients, statusFilter, locFilter, searchQuery])
 
   const totalItems = filteredClients.length
   const totalPages = Math.ceil(totalItems / itemsPerPage)
   const currentData = filteredClients.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
 
-  useEffect(() => { setCurrentPage(1) }, [statusFilter, locFilter])
+  useEffect(() => { setCurrentPage(1) }, [statusFilter, locFilter, searchQuery])
 
-  const stats = {
+  const stats = useMemo(() => ({
     paid: clients.filter(c => getPaymentStatus(c).text === 'Paid').length,
     unpaid: clients.filter(c => getPaymentStatus(c).text === 'Unpaid').length,
     unsettled: clients.filter(c => getPaymentStatus(c).text === 'Unsettled').length,
-  }
+  }), [clients])
 
-  const uniqueLocations = [...new Set(clients.map(c => c.location).filter(Boolean))]
+  const uniqueLocations = useMemo(() => [...new Set(clients.map(c => c.location).filter(Boolean))], [clients])
 
   const handleMarkAsPaid = async (client: any) => {
     const currentDueDate = getDueDate(client)
@@ -183,123 +245,237 @@ export default function DueDatesPage() {
     const { error } = await supabase.from('clients').update({ due_date: newDueDateStr }).eq('id', client.id)
 
     if (!error) {
+      setToast({ message: 'Payment marked successfully!', type: 'success' })
       fetchData()
     } else {
-      alert("Error: " + error.message)
+      setToast({ message: 'Error: ' + error.message, type: 'error' })
     }
     setProcessingId(null)
   }
+    return (
+    <div className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-8">
+      {/* Live Connection Indicator */}
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-3">
+          <div className={`relative flex h-3 w-3`}>
+            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isLive ? 'bg-green-400' : 'bg-slate-600'}`}></span>
+            <span className={`relative inline-flex rounded-full h-3 w-3 ${isLive ? 'bg-green-500' : 'bg-slate-500'}`}></span>
+          </div>
+          <span className="text-sm font-medium text-slate-400">
+            {isLive ? 'Live Updates' : 'Connected'}
+          </span>
+        </div>
+        <div className="text-xs text-slate-500">
+          Last Sync: {lastSync.toLocaleTimeString()}
+        </div>
+      </div>
 
-  return (
-    <div>
-      <div className="flex flex-col md:flex-row justify-between mb-6 gap-4">
-        <h2 className="text-3xl font-bold">Due Dates List</h2>
-        <button onClick={fetchData} className="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg flex items-center gap-2 font-semibold text-white">
-          <RefreshCw size={18} /> Refresh
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <div>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+            Due Dates Dashboard
+          </h2>
+          <p className="text-slate-400 mt-1">Manage client payments and schedules</p>
+        </div>
+        <button 
+          onClick={fetchData} 
+          className="bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-lg flex items-center gap-2 font-semibold text-white border border-slate-700 transition-all hover:scale-105"
+        >
+          <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} /> 
+          Refresh
         </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-xl">
-          <p className="text-green-400 font-bold">Paid</p>
-          <p className="text-2xl font-bold">{stats.paid}</p>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="p-5 bg-gradient-to-br from-green-500/10 to-green-500/5 border border-green-500/20 rounded-xl backdrop-blur-sm">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-green-400 font-semibold">Paid</p>
+            <CheckCircle size={20} className="text-green-400" />
+          </div>
+          <p className="text-3xl font-bold text-white">{stats.paid}</p>
         </div>
-        <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
-          <p className="text-red-400 font-bold">Unpaid</p>
-          <p className="text-2xl font-bold">{stats.unpaid}</p>
+        <div className="p-5 bg-gradient-to-br from-red-500/10 to-red-500/5 border border-red-500/20 rounded-xl backdrop-blur-sm">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-red-400 font-semibold">Unpaid</p>
+            <AlertCircle size={20} className="text-red-400" />
+          </div>
+          <p className="text-3xl font-bold text-white">{stats.unpaid}</p>
         </div>
-        <div className="p-4 bg-orange-500/10 border border-orange-500/30 rounded-xl">
-          <p className="text-orange-400 font-bold">Unsettled</p>
-          <p className="text-2xl font-bold">{stats.unsettled}</p>
+        <div className="p-5 bg-gradient-to-br from-orange-500/10 to-orange-500/5 border border-orange-500/20 rounded-xl backdrop-blur-sm">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-orange-400 font-semibold">Unsettled</p>
+            <Clock size={20} className="text-orange-400" />
+          </div>
+          <p className="text-3xl font-bold text-white">{stats.unsettled}</p>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-4 mb-6">
-        <select className="bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-white" value={locFilter} onChange={e => setLocFilter(e.target.value)}>
+      {/* Search & Filters */}
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={18} />
+          <input
+            type="text"
+            placeholder="Search clients..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-10 pr-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+          />
+        </div>
+
+        <select 
+          className="bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+          value={locFilter} 
+          onChange={e => setLocFilter(e.target.value)}
+        >
           <option value="All">All Locations</option>
           {uniqueLocations.map((loc: any) => <option key={loc} value={loc}>{loc}</option>)}
         </select>
 
-        <button onClick={() => setStatusFilter('unpaid')} className={`px-4 py-2 rounded-lg ${statusFilter === 'unpaid' ? 'bg-red-600' : 'bg-slate-700'}`}>Unpaid</button>
-        <button onClick={() => setStatusFilter('unsettled')} className={`px-4 py-2 rounded-lg ${statusFilter === 'unsettled' ? 'bg-orange-600' : 'bg-slate-700'}`}>Unsettled</button>
-        <button onClick={() => setStatusFilter('paid')} className={`px-4 py-2 rounded-lg ${statusFilter === 'paid' ? 'bg-green-600' : 'bg-slate-700'}`}>Paid</button>
+        <div className="flex gap-2">
+          <button 
+            onClick={() => setStatusFilter('unpaid')} 
+            className={`px-4 py-2.5 rounded-lg font-medium transition-all ${statusFilter === 'unpaid' ? 'bg-red-600 text-white shadow-lg shadow-red-500/20' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
+          >
+            Unpaid
+          </button>
+          <button 
+            onClick={() => setStatusFilter('unsettled')} 
+            className={`px-4 py-2.5 rounded-lg font-medium transition-all ${statusFilter === 'unsettled' ? 'bg-orange-600 text-white shadow-lg shadow-orange-500/20' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
+          >
+            Unsettled
+          </button>
+          <button 
+            onClick={() => setStatusFilter('paid')} 
+            className={`px-4 py-2.5 rounded-lg font-medium transition-all ${statusFilter === 'paid' ? 'bg-green-600 text-white shadow-lg shadow-green-500/20' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
+          >
+            Paid
+          </button>
+        </div>
       </div>
-
-      <div className="overflow-x-auto bg-transparent rounded-xl border border-white/10">
+        {/* Data Table */}
+      <div className="overflow-hidden bg-slate-900/50 border border-slate-800 rounded-xl backdrop-blur-sm">
         <table className="w-full text-left">
-          <thead className="bg-slate-900 text-slate-400 uppercase text-xs">
+          <thead className="bg-slate-900 border-b border-slate-800">
             <tr>
-              <th className="px-6 py-4">Client Name</th>
-              <th className="px-6 py-4">Status</th>
-              <th className="px-6 py-4">Location</th>
-              <th className="px-6 py-4">Plan</th>
-              <th className="px-6 py-4">Due Date</th>
-              <th className="px-6 py-4">Payment Status</th>
-              <th className="px-6 py-4 text-right">Actions</th>
+              <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Client Name</th>
+              <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Location</th>
+              <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Plan</th>
+              <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Due Date</th>
+              <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Payment Status</th>
+              <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-700">
-            {currentData.map((client: any) => {
-              const paymentStatus = getPaymentStatus(client)
-              const clientStatus = (client.status === 'active' || client.status === 'inactive') ? client.status : 'active'
-              const isProcessing = processingId === client.id
-              const dueDate = getDueDate(client)
-              
-              // Button should only be enabled when payment status is Unpaid or Unsettled
-              const isMarkAsPaidEnabled = paymentStatus.text === 'Unpaid' || paymentStatus.text === 'Unsettled'
-              
-              return (
-                <tr key={client.id} className="hover:bg-slate-700/50">
-                  <td className="px-6 py-4 font-medium">{client.client_name}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${clientStatus === 'active' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-                      {clientStatus === 'active' ? 'Active' : 'Inactive'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">{client.location}</td>
-                  <td className="px-6 py-4">{client.plans?.name} (₱{client.plans?.price})</td>
-                  <td className="px-6 py-4">{dueDate}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${paymentStatus.color}`}>
-                      {paymentStatus.text}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    {isAdmin && (
-                      <button 
-                        onClick={() => handleMarkAsPaid(client)} 
-                        disabled={isProcessing || !isMarkAsPaidEnabled} 
-                        className={`inline-flex items-center gap-1 px-3 py-1.5 text-white text-xs font-bold rounded disabled:opacity-50 ${
-                          isMarkAsPaidEnabled 
-                            ? 'bg-teal-600 hover:bg-teal-500' 
-                            : 'bg-slate-600 cursor-not-allowed'
-                        }`}
-                      >
-                        {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
-                        {isProcessing ? 'Processing...' : 'Mark Paid'}
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              )
-            })}
-            {currentData.length === 0 && (
-              <tr><td colSpan={7} className="px-6 py-8 text-center text-slate-500">No clients found</td></tr>
+          <tbody className="divide-y divide-slate-800">
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
+            ) : currentData.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
+                  <div className="flex flex-col items-center gap-3">
+                    <Activity size={32} className="text-slate-600" />
+                    <p>No clients found matching your criteria</p>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              currentData.map((client: any) => {
+                const paymentStatus = getPaymentStatus(client)
+                const clientStatus = (client.status === 'active' || client.status === 'inactive') ? client.status : 'active'
+                const isProcessing = processingId === client.id
+                const dueDate = getDueDate(client)
+                const daysLeft = getDaysRemaining(dueDate)
+                
+                // Button should only be enabled when payment status is Unpaid or Unsettled
+                const isMarkAsPaidEnabled = paymentStatus.text === 'Unpaid' || paymentStatus.text === 'Unsettled'
+                
+                return (
+                  <tr key={client.id} className="hover:bg-slate-800/50 transition-colors group">
+                    <td className="px-6 py-4 font-medium text-white">{client.client_name}</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 rounded-full text-xs font-bold ${clientStatus === 'active' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
+                        {clientStatus === 'active' ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-slate-300">{client.location || 'N/A'}</td>
+                    <td className="px-6 py-4 text-slate-300">
+                      {client.plans?.name} <span className="text-slate-500">|</span> ₱{client.plans?.price}
+                    </td>
+                    <td className="px-6 py-4 text-slate-300">
+                      <div className="flex items-center gap-2">
+                        {dueDate}
+                        {daysLeft !== null && (
+                          <span className={`text-xs px-1.5 py-0.5 rounded ${
+                            daysLeft < 0 ? 'bg-red-500/10 text-red-400' : 
+                            daysLeft === 0 ? 'bg-orange-500/10 text-orange-400' : 
+                            'bg-green-500/10 text-green-400'
+                          }`}>
+                            {daysLeft < 0 ? `${Math.abs(daysLeft)}d overdue` : `${daysLeft}d left`}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 rounded-full text-xs font-bold border ${paymentStatus.color}`}>
+                        {paymentStatus.text}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      {isAdmin && (
+                        <button 
+                          onClick={() => handleMarkAsPaid(client)} 
+                          disabled={isProcessing || !isMarkAsPaidEnabled} 
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                            isMarkAsPaidEnabled 
+                              ? 'bg-teal-600 hover:bg-teal-500 text-white shadow-lg shadow-teal-500/20 hover:scale-105' 
+                              : 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                          }`}
+                        >
+                          {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
+                          {isProcessing ? 'Processing...' : 'Mark Paid'}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })
             )}
           </tbody>
         </table>
       </div>
 
+      {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between mt-6 bg-slate-800 p-4 rounded-xl border border-slate-700">
-          <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => Math.max(1, p - 1))} className="flex items-center gap-1 px-4 py-2 bg-slate-700 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-600">
+        <div className="flex items-center justify-between mt-6 bg-slate-900/50 p-4 rounded-xl border border-slate-800 backdrop-blur-sm">
+          <button 
+            disabled={currentPage === 1} 
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
+            className="flex items-center gap-1 px-4 py-2 bg-slate-800 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-700 transition-colors"
+          >
             <ChevronLeft size={18} /> Previous
           </button>
-          <span className="text-slate-300">Page <span className="text-white font-bold">{currentPage}</span> of <span className="text-white font-bold">{totalPages}</span></span>
-          <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} className="flex items-center gap-1 px-4 py-2 bg-slate-700 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-600">
-            Next <ChevronRight size={18} />
+          <span className="text-slate-400 text-sm">
+            Page <span className="text-white font-bold">{currentPage}</span> of <span className="text-white font-bold">{totalPages}</span>
+          </span>
+          <button 
+            disabled={currentPage === totalPages} 
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
+            className="flex items-center gap-1 px-4 py-2 bg-slate-800 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-700 transition-colors"
+          >
+                        <ChevronRight size={18} />
           </button>
         </div>
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <Toast 
+          message={toast.message} 
+          type={toast.type} 
+          onClose={() => setToast(null)} 
+        />
       )}
     </div>
   )
