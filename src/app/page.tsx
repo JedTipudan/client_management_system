@@ -1,13 +1,14 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabaseClient'
-import { Users, DollarSign, Calendar, AlertCircle, Plus, Clock, RefreshCw } from 'lucide-react'
+import { Users, DollarSign, Calendar, AlertCircle, Plus, Clock, RefreshCw, TrendingUp, TrendingDown, Activity } from 'lucide-react'
 import Link from 'next/link'
 
 export default function Dashboard() {
   const [clients, setClients] = useState<any[]>([])
   const [plans, setPlans] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [animateNumbers, setAnimateNumbers] = useState(false)
 
   // --- Admin Logic ---
   const [user, setUser] = useState<any>(null)
@@ -31,6 +32,8 @@ export default function Dashboard() {
     setClients(clientsData || [])
     setPlans(plansData || [])
     setLoading(false)
+    // Trigger number animation after data loads
+    setTimeout(() => setAnimateNumbers(true), 100)
   }
 
   useEffect(() => {
@@ -77,7 +80,6 @@ export default function Dashboard() {
     return `${year}-${month}-${day}`
   }
 
-  // FIXED: Match DueDatesPage logic (using months, not days)
   const getPaymentStatus = (client: any): { text: string; color: string } => {
     const dueDate = getDueDate(client)
     if (!dueDate) return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
@@ -91,17 +93,14 @@ export default function Dashboard() {
     
     const monthsOverdue = (todayYearMonth.year - dueYear) * 12 + (todayYearMonth.month - dueMonth)
     
-    // If due date is in the FUTURE → Paid (already paid for this month)
     if (dueDateObj > today) {
       return { text: 'Paid', color: 'bg-green-500/10 text-green-500' }
     }
     
-    // If due date has passed and overdue by 1+ months → Unsettled
     if (monthsOverdue >= 1) {
       return { text: 'Unsettled', color: 'bg-orange-500/10 text-orange-500' }
     }
     
-    // If due date has passed (same month) → Unpaid (not yet paid for this month)
     return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
   }
 
@@ -123,59 +122,102 @@ export default function Dashboard() {
     })
     .slice(0, 5)
 
+  // Animated number counter
+  const AnimatedNumber = ({ value, duration = 1000 }: { value: number; duration?: number }) => {
+    const [displayValue, setDisplayValue] = useState(0)
+    
+    useEffect(() => {
+      if (!animateNumbers) return
+      let start = 0
+      const end = value
+      const increment = end / (duration / 16)
+      const timer = setInterval(() => {
+        start += increment
+        if (start >= end) {
+          setDisplayValue(end)
+          clearInterval(timer)
+        } else {
+          setDisplayValue(Math.floor(start))
+        }
+      }, 16)
+      return () => clearInterval(timer)
+    }, [value, duration, animateNumbers])
+    
+    return <span>{displayValue}</span>
+  }
+
   return (
-    <div>
+    <div className="animate-fade-in">
       <div className="flex justify-between items-center mb-8">
-        <h2 className="text-3xl font-bold">Dashboard Overview</h2>
-        <button onClick={fetchData} className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg text-white">
+        <h2 className="text-3xl font-bold animate-slide-in">Dashboard Overview</h2>
+        <button 
+          onClick={fetchData} 
+          className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg text-white transition-all duration-300 hover:scale-105 hover:shadow-lg"
+        >
           <RefreshCw size={18} className={loading ? 'animate-spin' : ''} /> Refresh
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="p-6 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl text-white">
-          <div className="flex justify-between items-start">
+        {/* Total Clients Card */}
+        <div className="group relative p-6 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl text-white transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/30 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+          <div className="flex justify-between items-start relative z-10">
             <div>
               <p className="text-blue-100 text-sm">Total Clients</p>
-              <h3 className="text-4xl font-bold mt-2">{totalClients}</h3>
+              <h3 className="text-4xl font-bold mt-2 animate-count-up">
+                <AnimatedNumber value={totalClients} />
+              </h3>
             </div>
-            <div className="p-3 bg-white/20 rounded-lg">
+            <div className="p-3 bg-white/20 rounded-lg group-hover:rotate-12 transition-transform duration-300">
               <Users size={24} />
             </div>
           </div>
         </div>
 
-        <div className="p-6 bg-gradient-to-br from-green-600 to-green-700 rounded-xl text-white">
-          <div className="flex justify-between items-start">
+        {/* Paid Card */}
+        <div className="group relative p-6 bg-gradient-to-br from-green-600 to-green-700 rounded-xl text-white transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-green-500/30 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+          <div className="flex justify-between items-start relative z-10">
             <div>
               <p className="text-green-100 text-sm">Paid</p>
-              <h3 className="text-4xl font-bold mt-2">{paidClients}</h3>
+              <h3 className="text-4xl font-bold mt-2 animate-count-up">
+                <AnimatedNumber value={paidClients} />
+              </h3>
             </div>
-            <div className="p-3 bg-white/20 rounded-lg">
+            <div className="p-3 bg-white/20 rounded-lg group-hover:rotate-12 transition-transform duration-300">
               <DollarSign size={24} />
             </div>
           </div>
         </div>
 
-        <div className="p-6 bg-gradient-to-br from-red-500 to-red-600 rounded-xl text-white">
-          <div className="flex justify-between items-start">
+        {/* Unpaid Card */}
+        <div className="group relative p-6 bg-gradient-to-br from-red-500 to-red-600 rounded-xl text-white transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-red-500/30 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+          <div className="flex justify-between items-start relative z-10">
             <div>
               <p className="text-red-100 text-sm">Unpaid</p>
-              <h3 className="text-4xl font-bold mt-2">{unpaidClients}</h3>
+              <h3 className="text-4xl font-bold mt-2 animate-count-up">
+                <AnimatedNumber value={unpaidClients} />
+              </h3>
             </div>
-            <div className="p-3 bg-white/20 rounded-lg">
+            <div className="p-3 bg-white/20 rounded-lg group-hover:rotate-12 transition-transform duration-300">
               <Calendar size={24} />
             </div>
           </div>
         </div>
 
-        <div className="p-6 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl text-white">
-          <div className="flex justify-between items-start">
+        {/* Unsettled Card */}
+        <div className="group relative p-6 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl text-white transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-orange-500/30 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+          <div className="flex justify-between items-start relative z-10">
             <div>
               <p className="text-orange-100 text-sm">Unsettled</p>
-              <h3 className="text-4xl font-bold mt-2">{unsettledClients}</h3>
+              <h3 className="text-4xl font-bold mt-2 animate-count-up">
+                <AnimatedNumber value={unsettledClients} />
+              </h3>
             </div>
-            <div className="p-3 bg-white/20 rounded-lg">
+            <div className="p-3 bg-white/20 rounded-lg group-hover:rotate-12 transition-transform duration-300">
               <AlertCircle size={24} />
             </div>
           </div>
@@ -185,48 +227,88 @@ export default function Dashboard() {
       {/* Admin Only: Action Buttons */}
       {isAdmin && (
         <div className="flex gap-4 mb-8">
-          <Link href="/clients" className="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 px-6 py-3 rounded-lg font-semibold transition">
-            <Plus size={20} /> Add Client
+          <Link 
+            href="/clients" 
+            className="group flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-cyan-500/30"
+          >
+            <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" /> Add Client
           </Link>
-          <Link href="/due-dates" className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 px-6 py-3 rounded-lg font-semibold transition">
-            <Clock size={20} /> View Due Dates
+          <Link 
+            href="/due-dates" 
+            className="group flex items-center gap-2 bg-slate-700 hover:bg-slate-600 px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-slate-500/30"
+          >
+            <Clock size={20} className="group-hover:rotate-180 transition-transform duration-300" /> View Due Dates
           </Link>
         </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-transparent backdrop-blur-sm backdrop-blur-sm rounded-xl border border-white/10 p-6">
-          <h3 className="text-xl font-bold mb-4">Recent Clients</h3>
+        {/* Recent Clients */}
+        <div className="group bg-transparent backdrop-blur-sm rounded-xl border border-white/10 p-6 transition-all duration-300 hover:shadow-xl hover:border-white/20">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-bold flex items-center gap-2">
+              <TrendingUp size={20} className="text-green-400" /> Recent Clients
+            </h3>
+            <span className="text-xs text-slate-400 bg-slate-700 px-2 py-1 rounded">
+              {recentClients.length} total
+            </span>
+          </div>
           {recentClients.length === 0 ? (
             <p className="text-slate-400">No clients yet</p>
           ) : (
             <div className="space-y-3">
-              {recentClients.map((client: any) => (
-                <div key={client.id} className="flex justify-between items-center p-3 bg-white/10 rounded-lg">
-                  <div>
-                    <p className="font-medium">{client.client_name}</p>
-                    <p className="text-sm text-slate-400">{client.location}</p>
+              {recentClients.map((client: any, index: number) => (
+                <div 
+                  key={client.id} 
+                  className="group/item flex justify-between items-center p-3 bg-white/10 rounded-lg transition-all duration-300 hover:bg-white/20 hover:scale-102 hover:shadow-lg cursor-pointer"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center text-white font-bold">
+                      {client.client_name.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="font-medium group-hover/item:text-cyan-300 transition-colors">{client.client_name}</p>
+                      <p className="text-sm text-slate-400">{client.location}</p>
+                    </div>
                   </div>
-                  <span className="text-cyan-300 font-bold">₱{client.plans?.price || 0}</span>
+                  <span className="text-cyan-300 font-bold group-hover/item:scale-110 transition-transform">₱{client.plans?.price || 0}</span>
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        <div className="bg-transparent backdrop-blur-sm backdrop-blur-sm rounded-xl border border-white/10 p-6">
-          <h3 className="text-xl font-bold mb-4">Upcoming Due Dates</h3>
+        {/* Upcoming Due Dates */}
+        <div className="group bg-transparent backdrop-blur-sm rounded-xl border border-white/10 p-6 transition-all duration-300 hover:shadow-xl hover:border-white/20">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-bold flex items-center gap-2">
+              <Activity size={20} className="text-yellow-400" /> Upcoming Due Dates
+            </h3>
+            <span className="text-xs text-slate-400 bg-slate-700 px-2 py-1 rounded">
+              {upcomingDue.length} total
+            </span>
+          </div>
           {upcomingDue.length === 0 ? (
             <p className="text-slate-400">No upcoming due dates</p>
           ) : (
             <div className="space-y-3">
-              {upcomingDue.map((client: any) => (
-                <div key={client.id} className="flex justify-between items-center p-3 bg-white/10 rounded-lg">
-                  <div>
-                    <p className="font-medium">{client.client_name}</p>
-                    <p className="text-sm text-slate-400">{client.location}</p>
+              {upcomingDue.map((client: any, index: number) => (
+                <div 
+                  key={client.id} 
+                  className="group/item flex justify-between items-center p-3 bg-white/10 rounded-lg transition-all duration-300 hover:bg-white/20 hover:scale-102 hover:shadow-lg cursor-pointer"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center text-white font-bold">
+                      {client.client_name.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="font-medium group-hover/item:text-yellow-300 transition-colors">{client.client_name}</p>
+                      <p className="text-sm text-slate-400">{client.location}</p>
+                    </div>
                   </div>
-                  <span className="text-yellow-300 font-medium">{getDueDate(client)}</span>
+                  <span className="text-yellow-300 font-medium group-hover/item:scale-110 transition-transform">{getDueDate(client)}</span>
                 </div>
               ))}
             </div>
