@@ -139,9 +139,10 @@ export default function DueDatesPage() {
       return true
     })
     .sort((a, b) => {
+      // SORT BY DATE: January to December (Ascending Order)
       const dateA = a.installation_date || a.due_date || ''
       const dateB = b.installation_date || b.due_date || ''
-      return new Date(dateB).getTime() - new Date(dateA).getTime()
+      return new Date(dateA).getTime() - new Date(dateB).getTime()
     })
 
   const totalItems = filteredClients.length
