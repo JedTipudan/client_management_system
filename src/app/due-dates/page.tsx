@@ -25,6 +25,21 @@ export default function DueDatesPage() {
     return `${year}-${month}-${day}`
   }
 
+  // Helper to get current year and month
+  const getCurrentYearMonth = () => {
+    const today = new Date()
+    return {
+      year: today.getFullYear(),
+      month: today.getMonth() + 1 // 1-12
+    }
+  }
+
+  // Helper to get due date year and month
+  const getDueYearMonth = (dateStr: string) => {
+    const [year, month, day] = dateStr.split('-').map(Number)
+    return { year, month }
+  }
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       const userData = data.user
@@ -42,7 +57,6 @@ export default function DueDatesPage() {
     setClients(data || [])
   }
 
-  // FIXED: Calculate due date without timezone shifting
   const calculateDueDate = (installDate: string) => {
     if (!installDate) return ''
     const [year, month, day] = installDate.split('-').map(Number)
@@ -71,34 +85,25 @@ export default function DueDatesPage() {
     const dueDate = getDueDate(client)
     if (!dueDate) return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500', monthsOverdue: 0 }
     
-    const todayStr = getTodayStr()
-    const today = new Date(todayStr + 'T00:00:00')
-    const dueDateObj = new Date(dueDate + 'T00:00:00')
+    const today = getCurrentYearMonth()
+    const due = getDueYearMonth(dueDate)
     
-    // Future due date = Active
-    if (dueDateObj > today) {
-      return { text: 'Active', color: 'bg-green-500/10 text-green-500', monthsOverdue: 0 }
-    }
-    
-    // Calculate months overdue using CALENDAR MONTHS (not 30 days)
-    const todayYear = today.getFullYear()
-    const todayMonth = today.getMonth()
-    const dueYear = dueDateObj.getFullYear()
-    const dueMonth = dueDateObj.getMonth()
-    
-    const monthsOverdue = (todayYear - dueYear) * 12 + (todayMonth - dueMonth)
+    // Calculate months overdue using CALENDAR MONTHS
+    const monthsOverdue = (today.year - due.year) * 12 + (today.month - due.month)
     
     // LOGIC: If due date month is in the past (any month), it becomes Unsettled
     if (monthsOverdue >= 1) {
       return { text: `Unsettled (${monthsOverdue} mo)`, color: 'bg-orange-500/10 text-orange-500', monthsOverdue }
     }
+    
+    // If due date is this month, it's Unpaid
     return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500', monthsOverdue: 0 }
   }
 
   const isThisMonth = (dateStr: string) => {
-    const today = new Date()
-    const date = new Date(dateStr + 'T00:00:00')
-    return date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear()
+    const today = getCurrentYearMonth()
+    const due = getDueYearMonth(dateStr)
+    return today.year === due.year && today.month === due.month
   }
 
   const filteredByLocation = clients.filter((c: any) => {
