@@ -92,9 +92,9 @@ export default function DueDatesPage() {
     const monthsOverdue = (todayYearMonth.year - dueYear) * 12 + (todayYearMonth.month - dueMonth)
     
     // FIXED LOGIC:
-    // If due date is in the FUTURE → Unpaid (not yet due)
+    // If due date is in the FUTURE → Paid (already paid for this month)
     if (dueDateObj > today) {
-      return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
+      return { text: 'Paid', color: 'bg-green-500/10 text-green-500' }
     }
     
     // If due date has passed and overdue by 1+ months → Unsettled
@@ -102,7 +102,7 @@ export default function DueDatesPage() {
       return { text: 'Unsettled', color: 'bg-orange-500/10 text-orange-500' }
     }
     
-    // If due date has passed (same month) → Unpaid (not yet paid)
+    // If due date has passed (same month) → Unpaid (not yet paid for this month)
     return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
   }
 
