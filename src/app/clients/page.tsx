@@ -72,26 +72,30 @@ export default function ClientsPage() {
         dueDateVal = calculateDueDate(client.installation_date)
     }
 
-    if (!dueDateVal) return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
+    if (!dueDateVal) return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500', monthsOverdue: 0 }
     
     const todayStr = getTodayStr()
     const dueDateObj = new Date(dueDateVal + 'T00:00:00')
     const todayObj = new Date(todayStr + 'T00:00:00')
     
+    // Future due date = Active
     if (dueDateObj > todayObj) {
-      return { text: 'Active', color: 'bg-green-500/10 text-green-500' }
+      return { text: 'Active', color: 'bg-green-500/10 text-green-500', monthsOverdue: 0 }
     }
     
-    const daysOverdue = Math.floor((todayObj.getTime() - dueDateObj.getTime()) / (1000 * 60 * 60 * 24))
+    // Calculate months overdue
+    const monthsOverdue = Math.floor((todayObj.getTime() - dueDateObj.getTime()) / (1000 * 60 * 60 * 24 * 30))
     
-    if (daysOverdue >= 30) return { text: 'Unsettled', color: 'bg-orange-500/10 text-orange-500' }
-    return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
+    // LOGIC: If overdue >= 1 month, it becomes Unsettled
+    if (monthsOverdue >= 1) {
+      return { text: `Unsettled (${monthsOverdue} mo)`, color: 'bg-orange-500/10 text-orange-500', monthsOverdue }
+    }
+    return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500', monthsOverdue: 0 }
   }
 
   const filteredClients = clients
     .filter(c => locFilter === 'All' || c.location === locFilter)
     .filter(c => c.client_name.toLowerCase().includes(search.toLowerCase()) || c.contact_number?.includes(search))
-    // SORTING: Newest to Oldest (Biggest to Lowest)
     .sort((a, b) => new Date(b.installation_date || b.due_date).getTime() - new Date(a.installation_date || a.due_date).getTime())
 
   const totalItems = filteredClients.length

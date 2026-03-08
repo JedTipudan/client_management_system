@@ -69,24 +69,28 @@ export default function DueDatesPage() {
     return ''
   }
 
-  const getStatus = (client: any): 'paid' | 'unpaid' | 'unsettled' => {
+  const getStatus = (client: any): { text: string; color: string; monthsOverdue: number } => {
     const dueDate = getDueDate(client)
-    if (!dueDate) return 'unpaid'
+    if (!dueDate) return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500', monthsOverdue: 0 }
     
     const todayStr = getTodayStr()
     const dueDateObj = new Date(dueDate + 'T00:00:00')
     const todayObj = new Date(todayStr + 'T00:00:00')
     
-    // Future due date = PAID
+    // Future due date = Active
     if (dueDateObj > todayObj) {
-      return 'paid'
+      return { text: 'Active', color: 'bg-green-500/10 text-green-500', monthsOverdue: 0 }
     }
     
+    // Calculate months overdue (using 30 days per month approximation)
     const daysOverdue = Math.floor((todayObj.getTime() - dueDateObj.getTime()) / (1000 * 60 * 60 * 24))
+    const monthsOverdue = Math.floor(daysOverdue / 30)
     
-    // LOGIC: If overdue >= 30 days, it becomes Unsettled
-    if (daysOverdue >= 30) return 'unsettled'
-    return 'unpaid'
+    // LOGIC: If overdue >= 1 month, it becomes Unsettled
+    if (monthsOverdue >= 1) {
+      return { text: `Unsettled (${monthsOverdue} mo)`, color: 'bg-orange-500/10 text-orange-500', monthsOverdue }
+    }
+    return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500', monthsOverdue: 0 }
   }
 
   const isThisMonth = (dateStr: string) => {
@@ -106,12 +110,12 @@ export default function DueDatesPage() {
       const status = getStatus(c)
       
       if (statusFilter === 'all') return true
-      if (statusFilter === 'paid') return status === 'paid'
-      if (statusFilter === 'unsettled') return status === 'unsettled'
+      if (statusFilter === 'paid') return status.text === 'Active'
+      if (statusFilter === 'unsettled') return status.text.includes('Unsettled')
       
       if (statusFilter === 'unpaid') {
         const dueDate = getDueDate(c)
-        return status === 'unpaid' && isThisMonth(dueDate)
+        return status.text === 'Unpaid' && isThisMonth(dueDate)
       }
       
       return true
@@ -130,9 +134,9 @@ export default function DueDatesPage() {
   useEffect(() => { setCurrentPage(1) }, [statusFilter, locFilter])
 
   const stats = {
-    paid: clients.filter(c => getStatus(c) === 'paid').length,
-    unpaid: clients.filter(c => getStatus(c) === 'unpaid').length,
-    unsettled: clients.filter(c => getStatus(c) === 'unsettled').length,
+    paid: clients.filter(c => getStatus(c).text === 'Active').length,
+    unpaid: clients.filter(c => getStatus(c).text === 'Unpaid').length,
+    unsettled: clients.filter(c => getStatus(c).text.includes('Unsettled')).length,
   }
 
   const uniqueLocations = [...new Set(clients.map(c => c.location).filter(Boolean))]
@@ -181,11 +185,11 @@ export default function DueDatesPage() {
 
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-xl">
-          <p className="text-green-400 font-bold">Paid</p>
+          <p className="text-green-400 font-bold">Active</p>
           <p className="text-2xl font-bold">{stats.paid}</p>
         </div>
         <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
-          <p className="text-red-400 font-bold">Unpaid (Total)</p>
+          <p className="text-red-400 font-bold">Unpaid</p>
           <p className="text-2xl font-bold">{stats.unpaid}</p>
         </div>
         <div className="p-4 bg-orange-500/10 border border-orange-500/30 rounded-xl">
@@ -201,7 +205,7 @@ export default function DueDatesPage() {
         </select>
 
         <button onClick={() => setStatusFilter('all')} className={`px-4 py-2 rounded-lg ${statusFilter === 'all' ? 'bg-cyan-600' : 'bg-slate-700'}`}>All</button>
-        <button onClick={() => setStatusFilter('paid')} className={`px-4 py-2 rounded-lg ${statusFilter === 'paid' ? 'bg-green-600' : 'bg-slate-700'}`}>Paid</button>
+        <button onClick={() => setStatusFilter('paid')} className={`px-4 py-2 rounded-lg ${statusFilter === 'paid' ? 'bg-green-600' : 'bg-slate-700'}`}>Active</button>
         <button onClick={() => setStatusFilter('unpaid')} className={`px-4 py-2 rounded-lg ${statusFilter === 'unpaid' ? 'bg-red-600' : 'bg-slate-700'}`}>Unpaid</button>
         <button onClick={() => setStatusFilter('unsettled')} className={`px-4 py-2 rounded-lg ${statusFilter === 'unsettled' ? 'bg-orange-600' : 'bg-slate-700'}`}>Unsettled</button>
       </div>
@@ -231,16 +235,12 @@ export default function DueDatesPage() {
                   <td className="px-6 py-4">{client.plans?.name} (₱{client.plans?.price})</td>
                   <td className="px-6 py-4">{dueDate}</td>
                   <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                      status === 'paid' ? 'bg-green-500/10 text-green-500' : 
-                      status === 'unpaid' ? 'bg-red-500/10 text-red-500' : 
-                      'bg-orange-500/10 text-orange-500'
-                    }`}>
-                      {status === 'paid' ? 'Paid' : status === 'unpaid' ? 'Unpaid' : 'Unsettled'}
+                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${status.color}`}>
+                      {status.text}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    {isAdmin && status !== 'paid' && (
+                    {isAdmin && status.text !== 'Active' && (
                       <button onClick={() => handleMarkAsPaid(client)} disabled={isProcessing} className="inline-flex items-center gap-1 px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold rounded disabled:opacity-50">
                         {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
                         {isProcessing ? 'Processing...' : 'Mark Paid'}
