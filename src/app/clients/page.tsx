@@ -68,7 +68,7 @@ export default function ClientsPage() {
   const filteredClients = clients
     .filter(c => locFilter === 'All' || c.location === locFilter)
     .filter(c => c.client_name.toLowerCase().includes(search.toLowerCase()) || c.contact_number?.includes(search))
-    .sort((a, b) => new Date(b.installation_date || b.due_date).getTime() - new Date(a.installation_date || a.due_date).getTime())
+    .sort((a, b) => new Date(a.installation_date || a.due_date).getTime() - new Date(b.installation_date || b.due_date).getTime())
 
   const totalItems = filteredClients.length
   const totalPages = Math.ceil(totalItems / itemsPerPage)
