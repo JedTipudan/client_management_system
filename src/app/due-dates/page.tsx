@@ -29,6 +29,14 @@ export default function DueDatesPage() {
     return today.getDate()
   }
 
+  const getTodayStr = () => {
+    const today = new Date()
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, '0')
+    const day = String(today.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       const userData = data.user
@@ -83,15 +91,19 @@ export default function DueDatesPage() {
     
     const monthsOverdue = (todayYearMonth.year - dueYear) * 12 + (todayYearMonth.month - dueMonth)
     
+    // FIXED LOGIC:
+    // If due date is in the FUTURE → Unpaid (not yet due)
     if (dueDateObj > today) {
-      return { text: 'Paid', color: 'bg-green-500/10 text-green-500' }
+      return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
     }
     
+    // If due date has passed and overdue by 1+ months → Unsettled
     if (monthsOverdue >= 1) {
       return { text: 'Unsettled', color: 'bg-orange-500/10 text-orange-500' }
     }
     
-    return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
+    // If due date has passed but not overdue (same month) → Paid (already paid)
+    return { text: 'Paid', color: 'bg-green-500/10 text-green-500' }
   }
 
   const isDueDateInCurrentMonth = (dateStr: string) => {
@@ -102,14 +114,6 @@ export default function DueDatesPage() {
     return today.year === dueYear && 
            today.month === dueMonth && 
            dueDay <= getTodayDay()
-  }
-
-  const getTodayStr = () => {
-    const today = new Date()
-    const year = today.getFullYear()
-    const month = String(today.getMonth() + 1).padStart(2, '0')
-    const day = String(today.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
   }
 
   const filteredByLocation = clients.filter((c: any) => {
