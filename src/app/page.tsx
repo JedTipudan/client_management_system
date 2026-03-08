@@ -39,15 +39,34 @@ export default function Dashboard() {
 
   const calculateDueDate = (installDate: string) => {
     if (!installDate) return ''
-    const date = new Date(installDate + 'T00:00:00')
-    date.setMonth(date.getMonth() + 1)
-    return date.toISOString().split('T')[0]
+    const [year, month, day] = installDate.split('-').map(Number)
+    
+    let newMonth = month + 1
+    let newYear = year
+    
+    if (newMonth > 12) {
+      newMonth = 1
+      newYear = year + 1
+    }
+
+    const daysInNewMonth = new Date(newYear, newMonth, 0).getDate()
+    const finalDay = Math.min(day, daysInNewMonth)
+
+    return `${newYear}-${String(newMonth).padStart(2, '0')}-${String(finalDay).padStart(2, '0')}`
   }
 
   const getDueDate = (client: any) => {
     if (client.due_date) return client.due_date
     if (client.installation_date) return calculateDueDate(client.installation_date)
     return ''
+  }
+
+  const getCurrentYearMonth = () => {
+    const today = new Date()
+    return {
+      year: today.getFullYear(),
+      month: today.getMonth() + 1
+    }
   }
 
   const getTodayStr = () => {
@@ -58,29 +77,38 @@ export default function Dashboard() {
     return `${year}-${month}-${day}`
   }
 
-  // FIXED: Changed > 30 to >= 30 to match Clients/DueDates pages
-  const getStatus = (client: any): 'active' | 'unpaid' | 'unsettled' => {
+  // FIXED: Match DueDatesPage logic (using months, not days)
+  const getPaymentStatus = (client: any): { text: string; color: string } => {
     const dueDate = getDueDate(client)
-    if (!dueDate) return 'active'
+    if (!dueDate) return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
     
     const todayStr = getTodayStr()
+    const today = new Date(todayStr + 'T00:00:00')
     const dueDateObj = new Date(dueDate + 'T00:00:00')
-    const todayObj = new Date(todayStr + 'T00:00:00')
     
-    // Future due date = ACTIVE (paid)
-    if (dueDateObj > todayObj) {
-      return 'active'
+    const todayYearMonth = getCurrentYearMonth()
+    const [dueYear, dueMonth] = dueDate.split('-').map(Number)
+    
+    const monthsOverdue = (todayYearMonth.year - dueYear) * 12 + (todayYearMonth.month - dueMonth)
+    
+    // If due date is in the FUTURE → Paid (already paid for this month)
+    if (dueDateObj > today) {
+      return { text: 'Paid', color: 'bg-green-500/10 text-green-500' }
     }
     
-    const daysOverdue = Math.floor((todayObj.getTime() - dueDateObj.getTime()) / (1000 * 60 * 60 * 24))
-    if (daysOverdue >= 30) return 'unsettled'
-    return 'unpaid'
+    // If due date has passed and overdue by 1+ months → Unsettled
+    if (monthsOverdue >= 1) {
+      return { text: 'Unsettled', color: 'bg-orange-500/10 text-orange-500' }
+    }
+    
+    // If due date has passed (same month) → Unpaid (not yet paid for this month)
+    return { text: 'Unpaid', color: 'bg-red-500/10 text-red-500' }
   }
 
   const totalClients = clients.length
-  const activeClients = clients.filter(c => getStatus(c) === 'active').length
-  const unpaidClients = clients.filter(c => getStatus(c) === 'unpaid').length
-  const unsettledClients = clients.filter(c => getStatus(c) === 'unsettled').length
+  const paidClients = clients.filter(c => getPaymentStatus(c).text === 'Paid').length
+  const unpaidClients = clients.filter(c => getPaymentStatus(c).text === 'Unpaid').length
+  const unsettledClients = clients.filter(c => getPaymentStatus(c).text === 'Unsettled').length
 
   const recentClients = clients.slice(0, 5)
 
@@ -120,8 +148,8 @@ export default function Dashboard() {
         <div className="p-6 bg-gradient-to-br from-green-600 to-green-700 rounded-xl text-white">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-green-100 text-sm">Active (Paid)</p>
-              <h3 className="text-4xl font-bold mt-2">{activeClients}</h3>
+              <p className="text-green-100 text-sm">Paid</p>
+              <h3 className="text-4xl font-bold mt-2">{paidClients}</h3>
             </div>
             <div className="p-3 bg-white/20 rounded-lg">
               <DollarSign size={24} />
@@ -129,10 +157,10 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="p-6 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl text-white">
+        <div className="p-6 bg-gradient-to-br from-red-500 to-red-600 rounded-xl text-white">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-yellow-100 text-sm">Unpaid</p>
+              <p className="text-red-100 text-sm">Unpaid</p>
               <h3 className="text-4xl font-bold mt-2">{unpaidClients}</h3>
             </div>
             <div className="p-3 bg-white/20 rounded-lg">
@@ -141,10 +169,10 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="p-6 bg-gradient-to-br from-red-500 to-red-600 rounded-xl text-white">
+        <div className="p-6 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl text-white">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-red-100 text-sm">Unsettled</p>
+              <p className="text-orange-100 text-sm">Unsettled</p>
               <h3 className="text-4xl font-bold mt-2">{unsettledClients}</h3>
             </div>
             <div className="p-3 bg-white/20 rounded-lg">
