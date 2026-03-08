@@ -127,8 +127,10 @@ export default function DueDatesPage() {
       const status = getPaymentStatus(c)
       const dueDate = getDueDate(c)
       
+      // HIDE PAID CLIENTS - Only show Unpaid or Unsettled
+      if (status.text === 'Paid') return false
+      
       if (statusFilter === 'all') return true
-      if (statusFilter === 'paid') return status.text === 'Paid'
       if (statusFilter === 'unsettled') return status.text === 'Unsettled'
       
       if (statusFilter === 'unpaid') {
@@ -220,7 +222,6 @@ export default function DueDatesPage() {
         </select>
 
         <button onClick={() => setStatusFilter('all')} className={`px-4 py-2 rounded-lg ${statusFilter === 'all' ? 'bg-cyan-600' : 'bg-slate-700'}`}>All</button>
-        <button onClick={() => setStatusFilter('paid')} className={`px-4 py-2 rounded-lg ${statusFilter === 'paid' ? 'bg-green-600' : 'bg-slate-700'}`}>Paid</button>
         <button onClick={() => setStatusFilter('unpaid')} className={`px-4 py-2 rounded-lg ${statusFilter === 'unpaid' ? 'bg-red-600' : 'bg-slate-700'}`}>Unpaid</button>
         <button onClick={() => setStatusFilter('unsettled')} className={`px-4 py-2 rounded-lg ${statusFilter === 'unsettled' ? 'bg-orange-600' : 'bg-slate-700'}`}>Unsettled</button>
       </div>
