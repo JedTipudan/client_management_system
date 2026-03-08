@@ -232,7 +232,7 @@ export default function DueDatesPage() {
           <tbody className="divide-y divide-slate-700">
             {currentData.map((client: any) => {
               const paymentStatus = getPaymentStatus(client)
-              const clientStatus = client.status || 'Active'
+              const clientStatus = (client.status === 'active' || client.status === 'inactive') ? client.status : 'active'
               const isProcessing = processingId === client.id
               const dueDate = getDueDate(client)
               
@@ -248,8 +248,8 @@ export default function DueDatesPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${clientStatus === 'Active' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-                      {clientStatus}
+                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${clientStatus === 'active' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                      {clientStatus === 'active' ? 'Active' : 'Inactive'}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">

@@ -18,7 +18,7 @@ export default function ClientsPage() {
     location: '', 
     plan_id: '', 
     installation_date: '', 
-    status: 'Active' 
+    status: 'active'
   })
   const [editId, setEditId] = useState<any>(null)
   const [user, setUser] = useState<any>(null)
@@ -109,7 +109,7 @@ export default function ClientsPage() {
       location: client.location, 
       plan_id: client.plan_id, 
       installation_date: client.installation_date || '', 
-      status: client.status || 'Active' 
+      status: (client.status === 'active' || client.status === 'inactive') ? client.status : 'active' 
     })
     setEditId(client.id)
     setShowModal(true)
@@ -124,7 +124,7 @@ export default function ClientsPage() {
             <RefreshCw size={18} /> Refresh
           </button>
           {isAdmin && (
-            <button onClick={() => { setEditId(null); setFormData({ client_name: '', contact_number: '', location: '', plan_id: '', installation_date: '', status: 'Active' }); setShowModal(true) }} className="bg-cyan-600 hover:bg-cyan-700 px-4 py-2 rounded-lg flex items-center gap-2 font-semibold">
+            <button onClick={() => { setEditId(null); setFormData({ client_name: '', contact_number: '', location: '', plan_id: '', installation_date: '', status: 'active' }); setShowModal(true) }} className="bg-cyan-600 hover:bg-cyan-700 px-4 py-2 rounded-lg flex items-center gap-2 font-semibold">
               <Plus size={20} /> Add Client
             </button>
           )}
@@ -161,7 +161,7 @@ export default function ClientsPage() {
           </thead>
           <tbody className="divide-y divide-slate-700">
             {currentData.map((client: any) => {
-              const clientStatus = client.status || 'Active'
+              const clientStatus = (client.status === 'active' || client.status === 'inactive') ? client.status : 'active'
               return (
                 <tr key={client.id} className="hover:bg-slate-700/50 transition">
                   <td className="px-6 py-4 font-medium">{client.client_name}</td>
@@ -170,8 +170,8 @@ export default function ClientsPage() {
                   <td className="px-6 py-4">{client.plans?.name} (₱{client.plans?.price})</td>
                   <td className="px-6 py-4">{client.installation_date || '-'}</td>
                   <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${clientStatus === 'Active' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-                      {clientStatus}
+                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${clientStatus === 'active' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                      {clientStatus === 'active' ? 'Active' : 'Inactive'}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
@@ -217,7 +217,7 @@ export default function ClientsPage() {
               <div><label className="block text-sm text-slate-400 mb-1">Location *</label><select className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})}><option value="">Select</option>{locations.map((loc: any) => <option key={loc.id} value={loc.name}>{loc.name}</option>)}</select></div>
               <div><label className="block text-sm text-slate-400 mb-1">Plan *</label><select className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white" value={formData.plan_id} onChange={e => setFormData({...formData, plan_id: e.target.value})}><option value="">Select</option>{plans.map((p: any) => <option key={p.id} value={p.id}>{p.name} - ₱{p.price}</option>)}</select></div>
               <div><label className="block text-sm text-slate-400 mb-1">Installation Date *</label><input type="date" className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white" value={formData.installation_date} onChange={e => setFormData({...formData, installation_date: e.target.value})} /><p className="text-xs text-slate-500 mt-1">Due date will be auto: Installation + 1 month</p></div>
-              <div><label className="block text-sm text-slate-400 mb-1">Status *</label><select className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}><option value="Active">Active</option><option value="Inactive">Inactive</option></select></div>
+              <div><label className="block text-sm text-slate-400 mb-1">Status *</label><select className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
               <div className="flex justify-end gap-3 mt-6">
                 <button onClick={() => setShowModal(false)} className="px-4 py-2 rounded-lg text-slate-300 hover:bg-slate-700">Cancel</button>
                 <button onClick={handleSave} className="bg-cyan-600 hover:bg-cyan-700 px-6 py-2 rounded-lg font-bold">{editId ? 'Update' : 'Save'}</button>
