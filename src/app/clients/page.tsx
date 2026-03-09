@@ -51,7 +51,7 @@ const SkeletonRow = () => (
     <td className="px-6 py-4"><div className="h-4 bg-slate-700/50 rounded w-20"></div></td>
     <td className="px-6 py-4"><div className="h-4 bg-slate-700/50 rounded w-24"></div></td>
     <td className="px-6 py-4"><div className="h-4 bg-slate-700/50 rounded w-24"></div></td>
-    <td className="px-6 py-4"><div className="h-6 bg-slate-700/50 rounded w-16"></div></td>
+    <td className="px-6 py-4"><div className="h-4 bg-slate-700/50 rounded w-24"></div></td>
     <td className="px-6 py-4"><div className="flex justify-end gap-2"><div className="h-8 w-8 bg-slate-700/50 rounded"></div><div className="h-8 w-8 bg-slate-700/50 rounded"></div></div></td>
   </tr>
 )
@@ -222,8 +222,8 @@ export default function ClientsPage() {
   }
 
   // --- Render ---
-  return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-8">
+    return (
+    <div className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8">
       {/* Live Connection Indicator */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
@@ -267,21 +267,21 @@ export default function ClientsPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div className="p-5 bg-gradient-to-br from-cyan-500/10 to-blue-500/5 border border-cyan-500/20 rounded-xl backdrop-blur-sm">
+        <div className="p-5 bg-gradient-to-br from-cyan-500/10 to-blue-500/5 border border-cyan-500/20 rounded-xl backdrop-blur-sm hover:border-cyan-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/10">
           <div className="flex items-center justify-between mb-2">
             <p className="text-cyan-400 font-semibold">Total Clients</p>
             <Users size={20} className="text-cyan-400" />
           </div>
           <p className="text-3xl font-bold text-white">{stats.totalClients}</p>
         </div>
-        <div className="p-5 bg-gradient-to-br from-green-500/10 to-emerald-500/5 border border-green-500/20 rounded-xl backdrop-blur-sm">
+        <div className="p-5 bg-gradient-to-br from-green-500/10 to-emerald-500/5 border border-green-500/20 rounded-xl backdrop-blur-sm hover:border-green-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-green-500/10">
           <div className="flex items-center justify-between mb-2">
             <p className="text-green-400 font-semibold">Active</p>
             <CheckCircle size={20} className="text-green-400" />
           </div>
           <p className="text-3xl font-bold text-white">{stats.activeClients}</p>
         </div>
-        <div className="p-5 bg-gradient-to-br from-red-500/10 to-pink-500/5 border border-red-500/20 rounded-xl backdrop-blur-sm">
+        <div className="p-5 bg-gradient-to-br from-red-500/10 to-pink-500/5 border border-red-500/20 rounded-xl backdrop-blur-sm hover:border-red-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-red-500/10">
           <div className="flex items-center justify-between mb-2">
             <p className="text-red-400 font-semibold">Inactive</p>
             <X size={20} className="text-red-400" />
@@ -318,7 +318,7 @@ export default function ClientsPage() {
 
       {/* Clients Table */}
       <div className="overflow-x-auto bg-slate-900/50 rounded-xl border border-slate-800 transition-all duration-300 backdrop-blur-sm">
-        <table className="w.text-left">
+        <table className="w-full text-left">
           <thead className="bg-slate-900 border-b border-slate-700">
             <tr>
               <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Name</th>
@@ -431,7 +431,7 @@ export default function ClientsPage() {
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-6 bg-slate-800/50 p-4 rounded-xl border border-slate-700 transition-all duration-300 hover:border-slate-600 backdrop-blur-sm">
           <button 
-            disabled={currentPage === 1} 
+                        disabled={currentPage === 1} 
             onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
             className="flex items-center gap-1 px-4 py-2 bg-slate-700 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-600 transition-all duration-300 hover:scale-105"
           >
