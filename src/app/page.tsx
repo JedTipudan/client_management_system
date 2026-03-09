@@ -7,17 +7,13 @@ import {
   DollarSign, 
   Calendar, 
   AlertCircle, 
-  Plus, 
-  Clock, 
   RefreshCw, 
   TrendingUp, 
   Activity,
   CheckCircle,
   X,
   Search,
-  MapPin,
-  Tag,
-  Loader2
+  MapPin
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -235,14 +231,6 @@ export default function Dashboard() {
           >
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} /> Refresh
           </button>
-          {isAdmin && (
-            <Link 
-              href="/clients" 
-              className="group flex items-center gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-cyan-500/30"
-            >
-              <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" /> Add Client
-            </Link>
-          )}
         </div>
       </div>
 
@@ -307,39 +295,8 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
-            </div>
-
-      {/* Admin Action Buttons */}
-      {isAdmin && (
-        <div className="flex flex-wrap gap-4 mb-8">
-          <Link 
-            href="/clients" 
-            className="group flex items-center gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-cyan-500/30"
-          >
-            <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" /> Add Client
-          </Link>
-          <Link 
-            href="/due-dates" 
-            className="group flex items-center gap-2 bg-slate-800 hover:bg-slate-700 px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg border border-slate-700"
-          >
-            <Clock size={20} className="group-hover:rotate-180 transition-transform duration-300" /> View Due Dates
-          </Link>
-          <Link 
-            href="/plans" 
-            className="group flex items-center gap-2 bg-slate-800 hover:bg-slate-700 px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg border border-slate-700"
-          >
-            <Tag size={20} className="group-hover:rotate-180 transition-transform duration-300" /> Manage Plans
-          </Link>
-          <Link 
-            href="/locations" 
-            className="group flex items-center gap-2 bg-slate-800 hover:bg-slate-700 px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg border border-slate-700"
-          >
-            <MapPin size={20} className="group-hover:rotate-180 transition-transform duration-300" /> Manage Locations
-          </Link>
-        </div>
-      )}
-
-      {/* Search Bar */}
+      </div>
+            {/* Search Bar */}
       <div className="mb-6">
         <div className="relative">
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
