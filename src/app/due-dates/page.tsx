@@ -14,7 +14,9 @@ import {
   Clock, 
   AlertCircle,
   X,
-  Activity
+  Activity,
+  Pen,
+  Info
 } from 'lucide-react'
 
 // --- Toast Notification Component ---
@@ -35,6 +37,80 @@ const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 
       <button onClick={onClose} className="ml-2 hover:opacity-70 transition-opacity">
         <X size={14} />
       </button>
+    </div>
+  )
+}
+
+// --- Custom Tooltip Component ---
+const Tooltip = ({ text, children }: { text: string, children: React.ReactNode }) => {
+  if (!text) return <>{children}</>
+  
+  return (
+    <div className="group relative inline-block">
+      {children}
+      <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 opacity-0 transition-opacity group-hover:opacity-100 z-50 w-max max-w-[200px]">
+        <div className="relative rounded-lg bg-slate-800 border border-slate-700 p-3 shadow-xl">
+          <div className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-800 border-l border-t border-slate-700"></div>
+          <p className="text-xs text-slate-300 font-medium leading-relaxed">{text}</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// --- Note Modal Component ---
+const NoteModal = ({ 
+  isOpen, 
+  onClose, 
+  onSave, 
+  initialNote 
+}: { 
+  isOpen: boolean, 
+  onClose: () => void, 
+  onSave: (note: string) => void, 
+  initialNote: string 
+}) => {
+  const [note, setNote] = useState(initialNote)
+
+  useEffect(() => {
+    setNote(initialNote)
+  }, [initialNote, isOpen])
+
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-scale-in">
+        <div className="flex items-center justify-between p-4 border-b border-slate-800">
+          <h3 className="text-lg font-semibold text-white">Edit Client Note</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+            <X size={20} />
+          </button>
+        </div>
+        <div className="p-4">
+          <label className="block text-sm font-medium text-slate-400 mb-2">Internal Note</label>
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Add details about this client..."
+            className="w-full h-32 bg-slate-950 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none text-sm"
+          />
+        </div>
+        <div className="p-4 bg-slate-900/50 border-t border-slate-800 flex justify-end gap-3">
+          <button 
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-white transition-colors"
+          >
+            Cancel
+          </button>
+          <button 
+            onClick={() => onSave(note)}
+            className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors"
+          >
+            Save Note
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -67,6 +143,11 @@ export default function DueDatesPage() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
+
+  // --- Note Modal State ---
+  const [isNoteModalOpen, setIsNoteModalOpen] = useState(false)
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
+  const [editingNoteText, setEditingNoteText] = useState('')
 
   // --- Helpers ---
   const getCurrentYearMonth = () => {
@@ -115,7 +196,8 @@ export default function DueDatesPage() {
 
   const fetchData = async () => {
     setIsLoading(true)
-    const { data } = await supabase.from('clients').select('*, plans(name, price)').order('client_name')
+    // IMPORTANT: Ensure 'notes' column exists in your Supabase clients table
+    const { data } = await supabase.from('clients').select('*, plans(name, price), notes').order('client_name')
     setClients(data || [])
     setIsLoading(false)
     setLastSync(new Date())
@@ -167,7 +249,9 @@ export default function DueDatesPage() {
     const today = getCurrentYearMonth()
     const [dueYear, dueMonth, dueDay] = dateStr.split('-').map(Number)
     return today.year === dueYear && today.month === dueMonth && dueDay <= getTodayDay()
-  }  // --- Filtering & Sorting ---
+  }
+
+  // --- Filtering & Sorting ---
   const filteredClients = useMemo(() => {
     let data = clients.filter((c: any) => c.installation_date || c.due_date)
     
@@ -201,7 +285,7 @@ export default function DueDatesPage() {
       if (statusA === 'Unpaid' && statusB !== 'Unpaid') return -1
       if (statusB === 'Unpaid' && statusA !== 'Unpaid') return 1
       
-            const dateA = a.installation_date || a.due_date || ''
+      const dateA = a.installation_date || a.due_date || ''
       const dateB = b.installation_date || b.due_date || ''
       return new Date(dateA).getTime() - new Date(dateB).getTime()
     })
@@ -221,6 +305,7 @@ export default function DueDatesPage() {
 
   const uniqueLocations = useMemo(() => [...new Set(clients.map(c => c.location).filter(Boolean))], [clients])
 
+  // --- Handlers ---
   const handleMarkAsPaid = async (client: any) => {
     const currentDueDate = getDueDate(client)
     if (!currentDueDate) return
@@ -252,7 +337,31 @@ export default function DueDatesPage() {
     }
     setProcessingId(null)
   }
-    return (
+
+    const openNoteModal = (client: any) => {
+    setEditingNoteId(client.id)
+    setEditingNoteText(client.notes || '')
+    setIsNoteModalOpen(true)
+  }
+
+  const saveNote = async (note: string) => {
+    setProcessingId(editingNoteId)
+    const { error } = await supabase
+      .from('clients')
+      .update({ notes: note })
+      .eq('id', editingNoteId)
+
+    if (!error) {
+      setToast({ message: 'Note saved successfully!', type: 'success' })
+      fetchData()
+    } else {
+      setToast({ message: 'Error saving note', type: 'error' })
+    }
+    setIsNoteModalOpen(false)
+    setProcessingId(null)
+  }
+
+  return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-8">
       {/* Live Connection Indicator */}
       <div className="flex items-center justify-between mb-8">
@@ -354,7 +463,8 @@ export default function DueDatesPage() {
           </button>
         </div>
       </div>
-        {/* Data Table */}
+
+      {/* Data Table */}
       <div className="overflow-hidden bg-slate-900/50 border border-slate-800 rounded-xl backdrop-blur-sm">
         <table className="w-full text-left">
           <thead className="bg-slate-900 border-b border-slate-800">
@@ -393,7 +503,13 @@ export default function DueDatesPage() {
                 
                 return (
                   <tr key={client.id} className="hover:bg-slate-800/50 transition-colors group">
-                    <td className="px-6 py-4 font-medium text-white">{client.client_name}</td>
+                    <td className="px-6 py-4 font-medium text-white">
+                      <Tooltip text={client.notes || 'No notes added'}>
+                        <span className="cursor-help border-b border-dashed border-slate-600 hover:border-slate-400 transition-colors">
+                          {client.client_name}
+                        </span>
+                      </Tooltip>
+                    </td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 rounded-full text-xs font-bold ${clientStatus === 'active' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
                         {clientStatus === 'active' ? 'Active' : 'Inactive'}
@@ -424,18 +540,27 @@ export default function DueDatesPage() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       {isAdmin && (
-                        <button 
-                          onClick={() => handleMarkAsPaid(client)} 
-                          disabled={isProcessing || !isMarkAsPaidEnabled} 
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                            isMarkAsPaidEnabled 
-                              ? 'bg-teal-600 hover:bg-teal-500 text-white shadow-lg shadow-teal-500/20 hover:scale-105' 
-                              : 'bg-slate-700 text-slate-500 cursor-not-allowed'
-                          }`}
-                        >
-                          {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
-                          {isProcessing ? 'Processing...' : 'Mark Paid'}
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button 
+                            onClick={() => openNoteModal(client)} 
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white"
+                            title="Edit Note"
+                          >
+                            <Pen className="w-3 h-3" />
+                          </button>
+                          <button 
+                            onClick={() => handleMarkAsPaid(client)} 
+                            disabled={isProcessing || !isMarkAsPaidEnabled} 
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                              isMarkAsPaidEnabled 
+                                ? 'bg-teal-600 hover:bg-teal-500 text-white shadow-lg shadow-teal-500/20 hover:scale-105' 
+                                : 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                            }`}
+                          >
+                            {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
+                            {isProcessing ? 'Processing...' : 'Mark Paid'}
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -464,7 +589,7 @@ export default function DueDatesPage() {
             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
             className="flex items-center gap-1 px-4 py-2 bg-slate-800 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-700 transition-colors"
           >
-                        <ChevronRight size={18} />
+            <ChevronRight size={18} /> Next
           </button>
         </div>
       )}
@@ -477,6 +602,14 @@ export default function DueDatesPage() {
           onClose={() => setToast(null)} 
         />
       )}
+
+      {/* Note Modal */}
+      <NoteModal 
+        isOpen={isNoteModalOpen}
+        onClose={() => setIsNoteModalOpen(false)}
+        onSave={saveNote}
+        initialNote={editingNoteText}
+      />
     </div>
   )
 }
