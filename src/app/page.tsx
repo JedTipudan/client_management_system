@@ -153,15 +153,25 @@ export default function Dashboard() {
 
   const recentClients = useMemo(() => clients.slice(0, 5), [clients])
 
+  // --- UPDATED LOGIC: Next 2 Days & Sorted Small to Big ---
   const upcomingDue = useMemo(() => {
-    const nextWeek = new Date()
-    nextWeek.setDate(nextWeek.getDate() + 7)
+    const today = new Date()
+    const nextTwoDays = new Date(today)
+    nextTwoDays.setDate(today.getDate() + 2)
+    
+    const nextTwoDaysStr = nextTwoDays.toISOString().split('T')[0]
+    const todayStr = getTodayStr()
+
     return clients
       .filter(c => {
         const dueDate = getDueDate(c)
         if (!dueDate) return false
-        const todayStr = getTodayStr()
-        return dueDate >= todayStr && dueDate <= nextWeek.toISOString().split('T')[0]
+        return dueDate >= todayStr && dueDate <= nextTwoDaysStr
+      })
+      .sort((a, b) => {
+        const dateA = getDueDate(a)
+        const dateB = getDueDate(b)
+        return new Date(dateA).getTime() - new Date(dateB).getTime()
       })
       .slice(0, 5)
   }, [clients])
@@ -309,8 +319,7 @@ export default function Dashboard() {
           />
         </div>
       </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Clients */}
         <div className="group bg-slate-900/50 backdrop-blur-sm rounded-xl border border-slate-800 p-6 transition-all duration-300 hover:shadow-xl hover:border-slate-700">
           <div className="flex justify-between items-center mb-4">
