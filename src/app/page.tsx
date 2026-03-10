@@ -153,7 +153,7 @@ export default function Dashboard() {
 
   const recentClients = useMemo(() => clients.slice(0, 5), [clients])
 
-  // --- UPDATED LOGIC: Next 2 Days & Sorted Small to Big ---
+  // --- UPDATED LOGIC: Next 2 Days & Sorted Small to Big (EXCLUDING TODAY) ---
   const upcomingDue = useMemo(() => {
     const today = new Date()
     const nextTwoDays = new Date(today)
@@ -166,7 +166,8 @@ export default function Dashboard() {
       .filter(c => {
         const dueDate = getDueDate(c)
         if (!dueDate) return false
-        return dueDate >= todayStr && dueDate <= nextTwoDaysStr
+        // Changed from >= to > to EXCLUDE today's date
+        return dueDate > todayStr && dueDate <= nextTwoDaysStr
       })
       .sort((a, b) => {
         const dateA = getDueDate(a)
@@ -300,13 +301,14 @@ export default function Dashboard() {
                 <AnimatedNumber value={stats.unsettledClients} />
               </h3>
             </div>
-            <div className="p-3 bg-white/20 rounded-lg group-hover:rotate-12 transition-transform duration-300">
+                        <div className="p-3 bg-white/20 rounded-lg group-hover:rotate-12 transition-transform duration-300">
               <AlertCircle size={24} />
             </div>
           </div>
         </div>
       </div>
-            {/* Search Bar */}
+
+      {/* Search Bar */}
       <div className="mb-6">
         <div className="relative">
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
@@ -319,7 +321,8 @@ export default function Dashboard() {
           />
         </div>
       </div>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Clients */}
         <div className="group bg-slate-900/50 backdrop-blur-sm rounded-xl border border-slate-800 p-6 transition-all duration-300 hover:shadow-xl hover:border-slate-700">
           <div className="flex justify-between items-center mb-4">
@@ -445,3 +448,4 @@ export default function Dashboard() {
     </div>
   )
 }
+            
