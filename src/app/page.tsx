@@ -319,7 +319,7 @@ export default function Dashboard() {
           />
         </div>
       </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Clients */}
         <div className="group bg-slate-900/50 backdrop-blur-sm rounded-xl border border-slate-800 p-6 transition-all duration-300 hover:shadow-xl hover:border-slate-700">
           <div className="flex justify-between items-center mb-4">
