@@ -504,12 +504,12 @@ export default function DueDatesPage() {
                 return (
                   <tr key={client.id} className="hover:bg-slate-800/50 transition-colors group">
                     <td className="px-6 py-4 font-medium text-white">
-                      <Tooltip text={client.notes || 'No notes added'}>
-                        <span className="cursor-help border-b border-dashed border-slate-600 hover:border-slate-400 transition-colors">
-                          {client.client_name}
-                        </span>
-                      </Tooltip>
-                    </td>
+                    <Tooltip text={client.notes || 'No notes added'}>
+                      <span className="cursor-help border-b border-dashed border-slate-600 hover:border-slate-400 transition-colors">
+                        {client.client_name}
+                      </span>
+                    </Tooltip>
+                  </td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 rounded-full text-xs font-bold ${clientStatus === 'active' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
                         {clientStatus === 'active' ? 'Active' : 'Inactive'}
