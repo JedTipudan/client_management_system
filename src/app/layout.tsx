@@ -21,11 +21,14 @@ export default function RootLayout({
   const pathname = usePathname()
   const router = useRouter()
   const [loading, setLoading] = useState(true)
+  
+  // 👇 MOVE STATE TO TOP LEVEL (NOT INSIDE useEffect)
+  const [timer, setTimer] = useState(600) // 10 minutes default
 
   // Define which routes are public (Login, Signup, etc.)
   const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/forgot-password'
 
-  // --- 1. AUTH CHECKING (Keep this as is) ---
+  // --- 1. AUTH CHECKING ---
   useEffect(() => {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -42,16 +45,16 @@ export default function RootLayout({
     checkUser()
   }, [pathname, router, isAuthPage])
 
-  // --- 2. SESSION TIMEOUT (ADD THIS HERE) ---
+  // --- 2. SESSION TIMEOUT (FIXED) ---
   useEffect(() => {
     // Skip timeout on auth pages
     if (isAuthPage) return
 
     const TIMEOUT_MINUTES = 10 // Set your desired timeout here
-    const [timer, setTimer] = useState(TIMEOUT_MINUTES * 60)
+    const TIMEOUT_SECONDS = TIMEOUT_MINUTES * 60
 
     const resetTimer = () => {
-      setTimer(TIMEOUT_MINUTES * 60)
+      setTimer(TIMEOUT_SECONDS)
     }
 
     // Listen for user activity
