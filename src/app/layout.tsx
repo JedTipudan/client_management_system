@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabaseClient'
 import { Poppins } from 'next/font/google'
@@ -22,10 +22,11 @@ export default function RootLayout({
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   
-  // 👇 MOVE STATE TO TOP LEVEL (NOT INSIDE useEffect)
+  // 1. Initialize timer state
   const [timer, setTimer] = useState(600) // 10 minutes default
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Define which routes are public (Login, Signup, etc.)
+  // Define which routes are public
   const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/forgot-password'
 
   // --- 1. AUTH CHECKING ---
@@ -50,24 +51,29 @@ export default function RootLayout({
     // Skip timeout on auth pages
     if (isAuthPage) return
 
-    const TIMEOUT_MINUTES = 10 // Set your desired timeout here
-    const TIMEOUT_SECONDS = TIMEOUT_MINUTES * 60
+    const TIMEOUT_SECONDS = 600 // 10 minutes
+
+    // 2.1 Reset timer when entering a protected route
+    // This ensures a fresh session start when logging in or navigating to protected pages
+    setTimer(TIMEOUT_SECONDS)
 
     const resetTimer = () => {
       setTimer(TIMEOUT_SECONDS)
     }
 
-    // Listen for user activity
+    // 2.2 Listen for user activity (Added touch events for mobile)
     window.addEventListener('mousemove', resetTimer)
     window.addEventListener('keydown', resetTimer)
     window.addEventListener('click', resetTimer)
     window.addEventListener('scroll', resetTimer)
+    window.addEventListener('touchstart', resetTimer)
+    window.addEventListener('touchmove', resetTimer)
 
-    // Start the countdown
-    const interval = setInterval(() => {
+    // 2.3 Start the countdown
+    intervalRef.current = setInterval(() => {
       setTimer((prev) => {
         if (prev <= 1) {
-          clearInterval(interval)
+          if (intervalRef.current) clearInterval(intervalRef.current)
           supabase.auth.signOut()
           router.push('/login')
           return 0
@@ -77,11 +83,16 @@ export default function RootLayout({
     }, 1000)
 
     return () => {
+      // Cleanup listeners
       window.removeEventListener('mousemove', resetTimer)
       window.removeEventListener('keydown', resetTimer)
       window.removeEventListener('click', resetTimer)
       window.removeEventListener('scroll', resetTimer)
-      clearInterval(interval)
+      window.removeEventListener('touchstart', resetTimer)
+      window.removeEventListener('touchmove', resetTimer)
+      
+      // Cleanup interval
+      if (intervalRef.current) clearInterval(intervalRef.current)
     }
   }, [pathname, router, isAuthPage])
 
