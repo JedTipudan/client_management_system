@@ -13,10 +13,6 @@ const poppins = Poppins({
   weight: ['400', '600', '700'],
 });
 
-// Note: Metadata is removed because this is now a Client Component
-// If you need dynamic metadata, you should move it to a Server Component wrapper, 
-// but for now the page title in browser tab might need to be set manually or via next.config.js
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -29,25 +25,61 @@ export default function RootLayout({
   // Define which routes are public (Login, Signup, etc.)
   const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/forgot-password'
 
+  // --- 1. AUTH CHECKING (Keep this as is) ---
   useEffect(() => {
     const checkUser = async () => {
-      // 1. Get the current user
       const { data: { user } } = await supabase.auth.getUser()
 
-      // 2. Redirect logic
       if (!user && !isAuthPage) {
-        // If no user and NOT on login page -> Go to Login
         router.push('/login')
       } else if (user && isAuthPage) {
-        // If user IS logged in and trying to visit Login page -> Go to Dashboard
         router.push('/')
       } else {
-        // Otherwise, allow access
         setLoading(false)
       }
     }
 
     checkUser()
+  }, [pathname, router, isAuthPage])
+
+  // --- 2. SESSION TIMEOUT (ADD THIS HERE) ---
+  useEffect(() => {
+    // Skip timeout on auth pages
+    if (isAuthPage) return
+
+    const TIMEOUT_MINUTES = 10 // Set your desired timeout here
+    const [timer, setTimer] = useState(TIMEOUT_MINUTES * 60)
+
+    const resetTimer = () => {
+      setTimer(TIMEOUT_MINUTES * 60)
+    }
+
+    // Listen for user activity
+    window.addEventListener('mousemove', resetTimer)
+    window.addEventListener('keydown', resetTimer)
+    window.addEventListener('click', resetTimer)
+    window.addEventListener('scroll', resetTimer)
+
+    // Start the countdown
+    const interval = setInterval(() => {
+      setTimer((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval)
+          supabase.auth.signOut()
+          router.push('/login')
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+
+    return () => {
+      window.removeEventListener('mousemove', resetTimer)
+      window.removeEventListener('keydown', resetTimer)
+      window.removeEventListener('click', resetTimer)
+      window.removeEventListener('scroll', resetTimer)
+      clearInterval(interval)
+    }
   }, [pathname, router, isAuthPage])
 
   // Show a loading screen while checking
