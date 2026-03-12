@@ -25,10 +25,15 @@ export default function LoginPage() {
       setError(error.message)
       setLoading(false)
     } else {
-      setTimeout(() => {
-  window.location.href = '/'
-}, 500)
+      // Direct redirect without delay
+      router.push('/') 
     }
+  }
+
+  // Add this function to handle logout
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push('/login')
   }
 
   return (
