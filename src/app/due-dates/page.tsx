@@ -42,13 +42,13 @@ const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 
 // --- Skeleton Loader Component ---
 const SkeletonRow = () => (
   <tr className="animate-pulse">
-    <td className="px-6 py-4"><div className="h-4 bg-slate-700/50 rounded w-32"></div></td>
-    <td className="px-6 py-4"><div className="h-4 bg-slate-700/50 rounded w-16"></div></td>
-    <td className="px-6 py-4"><div className="h-4 bg-slate-700/50 rounded w-24"></div></td>
-    <td className="px-6 py-4"><div className="h-4 bg-slate-700/50 rounded w-20"></div></td>
-    <td className="px-6 py-4"><div className="h-4 bg-slate-700/50 rounded w-24"></div></td>
-    <td className="px-6 py-4"><div className="h-4 bg-slate-700/50 rounded w-20"></div></td>
-    <td className="px-6 py-4"><div className="h-8 bg-slate-700/50 rounded w-24 ml-auto"></div></td>
+    <td className="px-8 py-5"><div className="flex items-center gap-4"><div className="w-12 h-12 bg-slate-700/50 rounded-full"></div><div className="h-5 bg-slate-700/50 rounded w-40"></div></div></td>
+    <td className="px-8 py-5"><div className="h-5 bg-slate-700/50 rounded w-32"></div></td>
+    <td className="px-8 py-5"><div className="h-5 bg-slate-700/50 rounded w-28"></div></td>
+    <td className="px-8 py-5"><div className="h-5 bg-slate-700/50 rounded w-32"></div></td>
+    <td className="px-8 py-5"><div className="h-5 bg-slate-700/50 rounded w-32"></div></td>
+    <td className="px-8 py-5"><div className="h-5 bg-slate-700/50 rounded w-24"></div></td>
+    <td className="px-8 py-5"><div className="flex justify-end gap-2"><div className="h-9 w-9 bg-slate-700/50 rounded"></div></div></td>
   </tr>
 )
 
@@ -167,7 +167,9 @@ export default function DueDatesPage() {
     const today = getCurrentYearMonth()
     const [dueYear, dueMonth, dueDay] = dateStr.split('-').map(Number)
     return today.year === dueYear && today.month === dueMonth && dueDay <= getTodayDay()
-  }  // --- Filtering & Sorting ---
+  }
+
+  // --- Filtering & Sorting ---
   const filteredClients = useMemo(() => {
     let data = clients.filter((c: any) => c.installation_date || c.due_date)
     
@@ -201,7 +203,7 @@ export default function DueDatesPage() {
       if (statusA === 'Unpaid' && statusB !== 'Unpaid') return -1
       if (statusB === 'Unpaid' && statusA !== 'Unpaid') return 1
       
-            const dateA = a.installation_date || a.due_date || ''
+      const dateA = a.installation_date || a.due_date || ''
       const dateB = b.installation_date || b.due_date || ''
       return new Date(dateA).getTime() - new Date(dateB).getTime()
     })
@@ -252,10 +254,11 @@ export default function DueDatesPage() {
     }
     setProcessingId(null)
   }
-    return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-8">
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-10">
       {/* Live Connection Indicator */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-10">
         <div className="flex items-center gap-3">
           <div className={`relative flex h-3 w-3`}>
             <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isLive ? 'bg-green-400' : 'bg-slate-600'}`}></span>
@@ -270,62 +273,61 @@ export default function DueDatesPage() {
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
         <div>
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+          <h2 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
             Due Dates Dashboard
           </h2>
-          <p className="text-slate-400 mt-1">Manage client payments and schedules</p>
+          <p className="text-slate-400 mt-2 text-lg">Manage client payments and schedules</p>
         </div>
         <button 
           onClick={fetchData} 
-          className="bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-lg flex items-center gap-2 font-semibold text-white border border-slate-700 transition-all hover:scale-105"
+          className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 px-5 py-2.5 rounded-lg text-white transition-all duration-300 hover:scale-105 hover:shadow-lg border border-slate-700"
         >
-          <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} /> 
-          Refresh
+          <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} /> Refresh
         </button>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div className="p-5 bg-gradient-to-br from-green-500/10 to-green-500/5 border border-green-500/20 rounded-xl backdrop-blur-sm">
-          <div className="flex items-center justify-between mb-2">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <div className="p-6 bg-gradient-to-br from-green-500/10 to-emerald-500/5 border border-green-500/20 rounded-2xl backdrop-blur-sm hover:border-green-500/40 transition-all duration-300 hover:shadow-xl hover:shadow-green-500/10">
+          <div className="flex items-center justify-between mb-3">
             <p className="text-green-400 font-semibold">Paid</p>
-            <CheckCircle size={20} className="text-green-400" />
+            <CheckCircle size={24} className="text-green-400" />
           </div>
-          <p className="text-3xl font-bold text-white">{stats.paid}</p>
+          <p className="text-4xl font-bold text-white">{stats.paid}</p>
         </div>
-        <div className="p-5 bg-gradient-to-br from-red-500/10 to-red-500/5 border border-red-500/20 rounded-xl backdrop-blur-sm">
-          <div className="flex items-center justify-between mb-2">
+        <div className="p-6 bg-gradient-to-br from-red-500/10 to-pink-500/5 border border-red-500/20 rounded-2xl backdrop-blur-sm hover:border-red-500/40 transition-all duration-300 hover:shadow-xl hover:shadow-red-500/10">
+          <div className="flex items-center justify-between mb-3">
             <p className="text-red-400 font-semibold">Unpaid</p>
-            <AlertCircle size={20} className="text-red-400" />
+            <AlertCircle size={24} className="text-red-400" />
           </div>
-          <p className="text-3xl font-bold text-white">{stats.unpaid}</p>
+          <p className="text-4xl font-bold text-white">{stats.unpaid}</p>
         </div>
-        <div className="p-5 bg-gradient-to-br from-orange-500/10 to-orange-500/5 border border-orange-500/20 rounded-xl backdrop-blur-sm">
-          <div className="flex items-center justify-between mb-2">
+        <div className="p-6 bg-gradient-to-br from-orange-500/10 to-orange-500/5 border border-orange-500/20 rounded-2xl backdrop-blur-sm hover:border-orange-500/40 transition-all duration-300 hover:shadow-xl hover:shadow-orange-500/10">
+          <div className="flex items-center justify-between mb-3">
             <p className="text-orange-400 font-semibold">Unsettled</p>
-            <Clock size={20} className="text-orange-400" />
+            <Clock size={24} className="text-orange-400" />
           </div>
-          <p className="text-3xl font-bold text-white">{stats.unsettled}</p>
+          <p className="text-4xl font-bold text-white">{stats.unsettled}</p>
         </div>
       </div>
 
       {/* Search & Filters */}
-      <div className="flex flex-col md:flex-row gap-4 mb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={18} />
+      <div className="bg-slate-800/50 p-5 rounded-2xl border border-slate-700 mb-8 flex flex-wrap gap-4 transition-all duration-300 hover:border-slate-600 backdrop-blur-sm">
+        <div className="flex-1 min-w-[250px] relative">
+          <Search className="absolute left-5 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
           <input
             type="text"
             placeholder="Search clients..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-10 pr-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+            className="w-full bg-slate-900/50 border border-slate-600 rounded-xl pl-12 pr-5 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300" 
           />
         </div>
 
         <select 
-          className="bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+          className="bg-slate-900/50 border border-slate-600 rounded-xl px-5 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 min-w-[200px]" 
           value={locFilter} 
           onChange={e => setLocFilter(e.target.value)}
         >
@@ -333,55 +335,65 @@ export default function DueDatesPage() {
           {uniqueLocations.map((loc: any) => <option key={loc} value={loc}>{loc}</option>)}
         </select>
 
-        <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
           <button 
             onClick={() => setStatusFilter('unpaid')} 
-            className={`px-4 py-2.5 rounded-lg font-medium transition-all ${statusFilter === 'unpaid' ? 'bg-red-600 text-white shadow-lg shadow-red-500/20' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
+            className={`px-4 py-2.5 rounded-xl font-medium transition-all ${statusFilter === 'unpaid' ? 'bg-red-600 text-white shadow-lg shadow-red-500/20' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 border border-slate-700 hover:border-slate-600'}`}
           >
             Unpaid
           </button>
           <button 
             onClick={() => setStatusFilter('unsettled')} 
-            className={`px-4 py-2.5 rounded-lg font-medium transition-all ${statusFilter === 'unsettled' ? 'bg-orange-600 text-white shadow-lg shadow-orange-500/20' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
+            className={`px-4 py-2.5 rounded-xl font-medium transition-all ${statusFilter === 'unsettled' ? 'bg-orange-600 text-white shadow-lg shadow-orange-500/20' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 border border-slate-700 hover:border-slate-600'}`}
           >
             Unsettled
           </button>
           <button 
             onClick={() => setStatusFilter('paid')} 
-            className={`px-4 py-2.5 rounded-lg font-medium transition-all ${statusFilter === 'paid' ? 'bg-green-600 text-white shadow-lg shadow-green-500/20' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
+            className={`px-4 py-2.5 rounded-xl font-medium transition-all ${statusFilter === 'paid' ? 'bg-green-600 text-white shadow-lg shadow-green-500/20' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 border border-slate-700 hover:border-slate-600'}`}
           >
             Paid
           </button>
         </div>
       </div>
-        {/* Data Table */}
-      <div className="overflow-hidden bg-slate-900/50 border border-slate-800 rounded-xl backdrop-blur-sm">
-        <table className="w-full text-left">
-          <thead className="bg-slate-900 border-b border-slate-800">
+
+      {/* Info Bar */}
+      <div className="mb-6 text-slate-400 text-sm flex items-center gap-2">
+        <Activity size={18} />
+        Showing <span className="text-white font-bold">{currentData.length}</span> of <span className="text-white font-bold">{totalItems}</span> clients
+      </div>
+
+      {/* Clients Table - Mobile Optimized with Horizontal Scroll */}
+      <div className="overflow-x-auto bg-slate-900/50 rounded-2xl border border-slate-800 transition-all duration-300 backdrop-blur-sm">
+        <table className="w-full text-left min-w-[800px]">
+          <thead className="bg-slate-900 border-b border-slate-700">
             <tr>
-              <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Client Name</th>
-              <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Location</th>
-              <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Plan</th>
-              <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Due Date</th>
-              <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">Payment Status</th>
-              <th className="px-6 py-4 text-xs font-semibold text-slate-400 uppercase tracking-wider text-right">Actions</th>
+              <th className="px-8 py-5 text-xs font-semibold text-slate-400 uppercase tracking-wider">Client Name</th>
+              <th className="px-8 py-5 text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
+              <th className="px-8 py-5 text-xs font-semibold text-slate-400 uppercase tracking-wider">Location</th>
+              <th className="px-8 py-5 text-xs font-semibold text-slate-400 uppercase tracking-wider">Plan</th>
+              <th className="px-8 py-5 text-xs font-semibold text-slate-400 uppercase tracking-wider">Due Date</th>
+              <th className="px-8 py-5 text-xs font-semibold text-slate-400 uppercase tracking-wider">Payment Status</th>
+              <th className="px-8 py-5 text-xs font-semibold text-slate-400 uppercase tracking-wider text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800">
+          <tbody className="divide-y divide-slate-700">
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
             ) : currentData.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
-                  <div className="flex flex-col items-center gap-3">
-                    <Activity size={32} className="text-slate-600" />
-                    <p>No clients found matching your criteria</p>
+                <td colSpan={7} className="px-8 py-16 text-center">
+                  <div className="flex flex-col items-center gap-6">
+                    <Activity size={64} className="text-slate-600" />
+                    <h3 className="text-2xl font-bold text-slate-300">No Clients Found</h3>
+                    <p className="text-slate-500 max-w-md">
+                      {searchQuery || locFilter !== 'All' || statusFilter !== 'unpaid' ? 'Try adjusting your search or filters' : 'No due dates matching your criteria'}
+                    </p>
                   </div>
                 </td>
               </tr>
             ) : (
-              currentData.map((client: any) => {
+              currentData.map((client: any, index: number) => {
                 const paymentStatus = getPaymentStatus(client)
                 const clientStatus = (client.status === 'active' || client.status === 'inactive') ? client.status : 'active'
                 const isProcessing = processingId === client.id
@@ -392,50 +404,77 @@ export default function DueDatesPage() {
                 const isMarkAsPaidEnabled = paymentStatus.text === 'Unpaid' || paymentStatus.text === 'Unsettled'
                 
                 return (
-                  <tr key={client.id} className="hover:bg-slate-800/50 transition-colors group">
-                    <td className="px-6 py-4 font-medium text-white">{client.client_name}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-bold ${clientStatus === 'active' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
+                  <tr 
+                    key={client.id} 
+                    className="group/row hover:bg-slate-800/50 transition-all duration-300 animate-fade-in"
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <td className="px-8 py-5">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-blue-500/20">
+                          {client.client_name.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="font-medium text-white group-hover/name:text-blue-300 transition-colors">
+                          {client.client_name}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-8 py-5">
+                      <span className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-300 group-hover/status:scale-110 ${
+                        clientStatus === 'active' 
+                          ? 'bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20' 
+                          : 'bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20'
+                      }`}>
                         {clientStatus === 'active' ? 'Active' : 'Inactive'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-slate-300">{client.location || 'N/A'}</td>
-                    <td className="px-6 py-4 text-slate-300">
-                      {client.plans?.name} <span className="text-slate-500">|</span> ₱{client.plans?.price}
-                    </td>
-                    <td className="px-6 py-4 text-slate-300">
+                    <td className="px-8 py-5 group-hover/location:text-blue-300 transition-colors">
                       <div className="flex items-center gap-2">
+                        {client.location || '-'}
+                      </div>
+                    </td>
+                    <td className="px-8 py-5 group-hover/plan:text-green-300 transition-colors">
+                      <div className="flex items-center gap-2">
+                        {client.plans?.name} <span className="text-slate-500">|</span> ₱{client.plans?.price}
+                      </div>
+                    </td>
+                    <td className="px-8 py-5 group-hover/date:text-yellow-300 transition-colors">
+                      <div className="flex items-center gap-2 flex-wrap">
                         {dueDate}
                         {daysLeft !== null && (
-                          <span className={`text-xs px-1.5 py-0.5 rounded ${
-                            daysLeft < 0 ? 'bg-red-500/10 text-red-400' : 
-                            daysLeft === 0 ? 'bg-orange-500/10 text-orange-400' : 
-                            'bg-green-500/10 text-green-400'
+                          <span className={`text-xs px-2 py-1 rounded-full font-bold ${
+                            daysLeft < 0 ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 
+                            daysLeft === 0 ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' : 
+                            'bg-green-500/20 text-green-400 border border-green-500/30'
                           }`}>
                             {daysLeft < 0 ? `${Math.abs(daysLeft)}d overdue` : `${daysLeft}d left`}
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-bold border ${paymentStatus.color}`}>
+                    <td className="px-8 py-5">
+                      <span className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all duration-300 group-hover/status:scale-110 ${paymentStatus.color}`}>
                         {paymentStatus.text}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-8 py-5 text-right">
                       {isAdmin && (
-                        <button 
-                          onClick={() => handleMarkAsPaid(client)} 
-                          disabled={isProcessing || !isMarkAsPaidEnabled} 
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                            isMarkAsPaidEnabled 
-                              ? 'bg-teal-600 hover:bg-teal-500 text-white shadow-lg shadow-teal-500/20 hover:scale-105' 
-                              : 'bg-slate-700 text-slate-500 cursor-not-allowed'
-                          }`}
-                        >
-                          {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
-                          {isProcessing ? 'Processing...' : 'Mark Paid'}
-                        </button>
+                        <div className="flex justify-end">
+                          <button 
+                            onClick={() => handleMarkAsPaid(client)} 
+                            disabled={isProcessing || !isMarkAsPaidEnabled} 
+                            className={`p-2.5 text-teal-400 hover:text-teal-300 hover:bg-teal-500/10 rounded-lg transition-all duration-300 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed ${
+                              isMarkAsPaidEnabled ? 'group-hover/actions:bg-teal-500/20' : ''
+                            }`}
+                            title="Mark as Paid"
+                          >
+                            {isProcessing ? (
+                              <Loader2 size={20} className="animate-spin" />
+                            ) : (
+                              <CheckCircle size={20} />
+                            )}
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -448,23 +487,23 @@ export default function DueDatesPage() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between mt-6 bg-slate-900/50 p-4 rounded-xl border border-slate-800 backdrop-blur-sm">
+        <div className="flex items-center justify-between mt-8 bg-slate-800/50 p-5 rounded-2xl border border-slate-700 transition-all duration-300 hover:border-slate-600 backdrop-blur-sm">
           <button 
             disabled={currentPage === 1} 
             onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
-            className="flex items-center gap-1 px-4 py-2 bg-slate-800 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-700 transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 bg-slate-700 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-600 transition-all duration-300 hover:scale-105"
           >
-            <ChevronLeft size={18} /> Previous
+            <ChevronLeft size={20} /> Previous
           </button>
-          <span className="text-slate-400 text-sm">
+          <span className="text-slate-300">
             Page <span className="text-white font-bold">{currentPage}</span> of <span className="text-white font-bold">{totalPages}</span>
           </span>
           <button 
             disabled={currentPage === totalPages} 
             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
-            className="flex items-center gap-1 px-4 py-2 bg-slate-800 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-700 transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 bg-slate-700 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-600 transition-all duration-300 hover:scale-105"
           >
-                        <ChevronRight size={18} />
+            Next <ChevronRight size={20} />
           </button>
         </div>
       )}
