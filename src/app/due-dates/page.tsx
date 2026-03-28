@@ -265,7 +265,12 @@ export default function DueDatesPage() {
     const currentDueDate = getDueDate(client)
     if (!currentDueDate) return
 
-    const [year, month, day] = currentDueDate.split('-').map(Number)
+    // Use original installation day, not the due date day
+    const originalDay = client.installation_date 
+      ? Number(client.installation_date.split('-')[2]) 
+      : Number(currentDueDate.split('-')[2])
+
+    const [year, month] = currentDueDate.split('-').map(Number)
     let newMonth = month + 1
     let newYear = year
     
@@ -275,7 +280,7 @@ export default function DueDatesPage() {
     }
 
     const daysInNewMonth = new Date(newYear, newMonth, 0).getDate()
-    const finalDay = Math.min(day, daysInNewMonth)
+    const finalDay = Math.min(originalDay, daysInNewMonth)
     const newDueDateStr = `${newYear}-${String(newMonth).padStart(2, '0')}-${String(finalDay).padStart(2, '0')}`
 
     if (!confirm(`Mark as paid?\nDue date will advance from ${currentDueDate} to ${newDueDateStr}`)) return
