@@ -165,8 +165,8 @@ export default function DueDatesPage() {
 
   const isDueDateInCurrentMonth = (dateStr: string) => {
     const today = getCurrentYearMonth()
-    const [dueYear, dueMonth, dueDay] = dateStr.split('-').map(Number)
-    return today.year === dueYear && today.month === dueMonth && dueDay <= getTodayDay()
+    const [dueYear, dueMonth] = dateStr.split('-').map(Number)
+    return today.year === dueYear && today.month === dueMonth
   }
 
   // --- Filtering & Sorting ---
