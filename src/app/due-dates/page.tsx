@@ -155,18 +155,56 @@ export default function DueDatesPage() {
     const dueDateObj = new Date(dueDate + 'T00:00:00')
     
     const todayYearMonth = getCurrentYearMonth()
-    const [dueYear, dueMonth] = dueDate.split('-').map(Number)
-    const monthsOverdue = (todayYearMonth.year - dueYear) * 12 + (todayYearMonth.month - dueMonth)
+    const [dueYear, dueMonth, dueDay] = dueDate.split('-').map(Number)
     
     if (dueDateObj > today) return { text: 'Paid', color: 'bg-green-500/10 text-green-400 border-green-500/20' }
+    
+    // Check if this is a shortened due date (install day doesn't exist in due month)
+    const installDate = client.installation_date
+    if (installDate) {
+      const [, , installDay] = installDate.split('-').map(Number)
+      const daysInDueMonth = new Date(dueYear, dueMonth, 0).getDate()
+      
+      // If install day doesn't exist in due month, mark as Unsettled when we reach a month that has that day
+      if (installDay > daysInDueMonth) {
+        const daysInCurrentMonth = new Date(todayYearMonth.year, todayYearMonth.month, 0).getDate()
+        
+        // If current month has the install day and we're past the due month, show as Unsettled
+        if (installDay <= daysInCurrentMonth) {
+          const monthsOverdue = (todayYearMonth.year - dueYear) * 12 + (todayYearMonth.month - dueMonth)
+          if (monthsOverdue >= 1) {
+            return { text: 'Unsettled', color: 'bg-orange-500/10 text-orange-400 border-orange-500/20' }
+          }
+        }
+        
+        // Don't show as Unpaid if current month doesn't have the install day
+        return { text: 'Paid', color: 'bg-green-500/10 text-green-400 border-green-500/20' }
+      }
+    }
+    
+    const monthsOverdue = (todayYearMonth.year - dueYear) * 12 + (todayYearMonth.month - dueMonth)
     if (monthsOverdue >= 1) return { text: 'Unsettled', color: 'bg-orange-500/10 text-orange-400 border-orange-500/20' }
     return { text: 'Unpaid', color: 'bg-red-500/10 text-red-400 border-red-500/20' }
   }
 
-  const isDueDateInCurrentMonth = (dateStr: string) => {
+  const isDueDateInCurrentMonth = (dateStr: string, client: any) => {
     const todayStr = getTodayStr()
     const today = new Date(todayStr + 'T00:00:00')
     const dueDate = new Date(dateStr + 'T00:00:00')
+    
+    // Check if install day exists in current month
+    const installDate = client.installation_date
+    if (installDate) {
+      const [, , installDay] = installDate.split('-').map(Number)
+      const todayYearMonth = getCurrentYearMonth()
+      const daysInCurrentMonth = new Date(todayYearMonth.year, todayYearMonth.month, 0).getDate()
+      
+      // If install day doesn't exist in current month, don't show as unpaid
+      if (installDay > daysInCurrentMonth) {
+        return false
+      }
+    }
+    
     return dueDate <= today
   }
 
@@ -191,7 +229,7 @@ export default function DueDatesPage() {
       if (statusFilter === 'all') return true
       if (statusFilter === 'paid') return status.text === 'Paid'
       if (statusFilter === 'unsettled') return status.text === 'Unsettled'
-      if (statusFilter === 'unpaid') return status.text === 'Unpaid' && isDueDateInCurrentMonth(dueDate)
+      if (statusFilter === 'unpaid') return status.text === 'Unpaid' && isDueDateInCurrentMonth(dueDate, c)
       return true
     })
 
@@ -237,7 +275,7 @@ export default function DueDatesPage() {
       newYear = year + 1
     }
 
-    const daysInNewMonth = new Date(newYear, newMonth + 1, 0).getDate()
+    const daysInNewMonth = new Date(newYear, newMonth, 0).getDate()
     const finalDay = Math.min(day, daysInNewMonth)
     const newDueDateStr = `${newYear}-${String(newMonth).padStart(2, '0')}-${String(finalDay).padStart(2, '0')}`
 
