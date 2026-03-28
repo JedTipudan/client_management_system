@@ -39,21 +39,41 @@ export default function FixDueDatesPage() {
       
       for (const client of clients || []) {
         if (client.installation_date) {
-          const correctDueDate = calculateDueDate(client.installation_date)
+          const firstDueDate = calculateDueDate(client.installation_date)
           
-          if (correctDueDate && correctDueDate !== client.due_date) {
+          // Only fix if due_date is null or if due_date is before the first calculated due date
+          // This prevents overwriting clients who have already paid
+          if (!client.due_date) {
             const { error: updateError } = await supabase
               .from('clients')
-              .update({ due_date: correctDueDate })
+              .update({ due_date: firstDueDate })
               .eq('id', client.id)
             
             if (updateError) {
               updates.push(`❌ ${client.client_name}: Error - ${updateError.message}`)
             } else {
-              updates.push(`✓ ${client.client_name}: ${client.due_date || 'none'} → ${correctDueDate}`)
+              updates.push(`✓ ${client.client_name}: Set to ${firstDueDate}`)
             }
           } else {
-            updates.push(`- ${client.client_name}: Already correct (${client.due_date})`)
+            const clientDueDate = new Date(client.due_date)
+            const calculatedDueDate = new Date(firstDueDate!)
+            
+            // Only update if current due date is before the first calculated due date
+            // This means they haven't paid yet
+            if (clientDueDate < calculatedDueDate) {
+              const { error: updateError } = await supabase
+                .from('clients')
+                .update({ due_date: firstDueDate })
+                .eq('id', client.id)
+              
+              if (updateError) {
+                updates.push(`❌ ${client.client_name}: Error - ${updateError.message}`)
+              } else {
+                updates.push(`✓ ${client.client_name}: ${client.due_date} → ${firstDueDate}`)
+              }
+            } else {
+              updates.push(`- ${client.client_name}: Already paid (${client.due_date})`)
+            }
           }
         }
       }
