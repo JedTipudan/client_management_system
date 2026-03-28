@@ -265,18 +265,28 @@ export default function DueDatesPage() {
     const currentDueDate = getDueDate(client)
     if (!currentDueDate) return
 
-    // Use original installation day, not the due date day
     const originalDay = client.installation_date 
       ? Number(client.installation_date.split('-')[2]) 
       : Number(currentDueDate.split('-')[2])
 
     const [year, month] = currentDueDate.split('-').map(Number)
-    let newMonth = month + 1
-    let newYear = year
     
-    if (newMonth > 12) {
-      newMonth = 1
-      newYear = year + 1
+    // Check if current month already has the original day and we haven't used it yet
+    const daysInCurrentMonth = new Date(year, month, 0).getDate()
+    
+    let newYear = year
+    let newMonth = month
+    
+    // If current due month can accommodate the original day, use it
+    // Otherwise advance to next month
+    if (originalDay <= daysInCurrentMonth && Number(currentDueDate.split('-')[2]) < originalDay) {
+      // Stay in same month but use correct day
+      newYear = year
+      newMonth = month
+    } else {
+      // Advance to next month
+      newMonth = month + 1
+      if (newMonth > 12) { newMonth = 1; newYear = year + 1 }
     }
 
     const daysInNewMonth = new Date(newYear, newMonth, 0).getDate()
