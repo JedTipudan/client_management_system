@@ -135,7 +135,28 @@ export default function DueDatesPage() {
     return `${newYear}-${String(newMonth).padStart(2, '0')}-${String(finalDay).padStart(2, '0')}`
   }
 
-  const getDueDate = (client: any) => client.due_date || calculateDueDate(client.installation_date) || ''
+  const getDueDate = (client: any) => {
+    const storedDue = client.due_date || calculateDueDate(client.installation_date) || ''
+    if (!storedDue || !client.installation_date) return storedDue
+
+    const originalDueDay = getOriginalDueDay(client)
+    if (!originalDueDay) return storedDue
+
+    const [dueYear, dueMonth] = storedDue.split('-').map(Number)
+    const daysInDueMonth = new Date(dueYear, dueMonth, 0).getDate()
+
+    // If install day doesn't exist in due month, find next valid month
+    if (originalDueDay > daysInDueMonth) {
+      let newMonth = dueMonth + 1
+      let newYear = dueYear
+      if (newMonth > 12) { newMonth = 1; newYear = dueYear + 1 }
+      const daysInNextMonth = new Date(newYear, newMonth, 0).getDate()
+      const finalDay = Math.min(originalDueDay, daysInNextMonth)
+      return `${newYear}-${String(newMonth).padStart(2, '0')}-${String(finalDay).padStart(2, '0')}`
+    }
+
+    return storedDue
+  }
 
   const getDaysRemaining = (dueDateStr: string) => {
     if (!dueDateStr) return null
@@ -172,17 +193,12 @@ export default function DueDatesPage() {
     // Get the original due day from installation date
     const originalDueDay = getOriginalDueDay(client)
     const daysInCurrentMonth = new Date(todayYearMonth.year, todayYearMonth.month, 0).getDate()
-    
-    // If original due day doesn't exist in current month and we're past the due month, show as Unsettled
-    if (originalDueDay && originalDueDay > daysInCurrentMonth && monthsOverdue >= 1) {
-      return { text: 'Unsettled', color: 'bg-orange-500/10 text-orange-400 border-orange-500/20' }
-    }
-    
-    // If original due day doesn't exist in current month, hide it (show as Paid)
+
     if (originalDueDay && originalDueDay > daysInCurrentMonth) {
+      // Install day doesn't exist in current month - hide it
       return { text: 'Paid', color: 'bg-green-500/10 text-green-400 border-green-500/20' }
     }
-    
+
     if (monthsOverdue >= 1) return { text: 'Unsettled', color: 'bg-orange-500/10 text-orange-400 border-orange-500/20' }
     return { text: 'Unpaid', color: 'bg-red-500/10 text-red-400 border-red-500/20' }
   }

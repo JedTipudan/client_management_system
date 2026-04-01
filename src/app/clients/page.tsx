@@ -82,6 +82,9 @@ export default function ClientsPage() {
 
   const [user, setUser] = useState<any>(null)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [showInactiveModal, setShowInactiveModal] = useState(false)
+  const [inactiveSearch, setInactiveSearch] = useState('')
+  const [togglingId, setTogglingId] = useState<string | null>(null)
 
   // --- Supabase Auth & Realtime ---
   useEffect(() => {
@@ -221,6 +224,26 @@ export default function ClientsPage() {
     setShowModal(true)
   }
 
+  const inactiveClients = useMemo(() => {
+    return clients
+      .filter(c => c.status === 'inactive')
+      .filter(c => c.client_name.toLowerCase().includes(inactiveSearch.toLowerCase()))
+      .sort((a, b) => a.client_name.localeCompare(b.client_name))
+  }, [clients, inactiveSearch])
+
+  const handleToggleStatus = async (client: any) => {
+    const newStatus = client.status === 'active' ? 'inactive' : 'active'
+    setTogglingId(client.id)
+    const { error } = await supabase.from('clients').update({ status: newStatus }).eq('id', client.id)
+    if (!error) {
+      setToast({ message: `${client.client_name} set to ${newStatus}!`, type: 'success' })
+      fetchData()
+    } else {
+      setToast({ message: 'Error: ' + error.message, type: 'error' })
+    }
+    setTogglingId(null)
+  }
+
   // --- Render ---
     return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-10">
@@ -281,12 +304,16 @@ export default function ClientsPage() {
           </div>
           <p className="text-4xl font-bold text-white">{stats.activeClients}</p>
         </div>
-        <div className="p-6 bg-gradient-to-br from-red-500/10 to-pink-500/5 border border-red-500/20 rounded-2xl backdrop-blur-sm hover:border-red-500/40 transition-all duration-300 hover:shadow-xl hover:shadow-red-500/10">
+        <div 
+          onClick={() => setShowInactiveModal(true)}
+          className="cursor-pointer p-6 bg-gradient-to-br from-red-500/10 to-pink-500/5 border border-red-500/20 rounded-2xl backdrop-blur-sm hover:border-red-500/40 transition-all duration-300 hover:shadow-xl hover:shadow-red-500/10 hover:scale-105 active:scale-95"
+        >
           <div className="flex items-center justify-between mb-3">
             <p className="text-red-400 font-semibold">Inactive</p>
             <X size={24} className="text-red-400" />
           </div>
           <p className="text-4xl font-bold text-white">{stats.inactiveClients}</p>
+          <p className="text-xs text-red-400/60 mt-2">Click to manage</p>
         </div>
       </div>
 
@@ -560,6 +587,90 @@ export default function ClientsPage() {
                   )}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Inactive Clients Modal */}
+      {showInactiveModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-slate-800 rounded-3xl w-full max-w-2xl border border-slate-700 shadow-2xl flex flex-col max-h-[85vh]">
+            {/* Header */}
+            <div className="flex justify-between items-center p-6 border-b border-slate-700">
+              <div>
+                <h3 className="text-2xl font-bold text-white flex items-center gap-3">
+                  <span className="p-2 bg-red-500/10 rounded-xl border border-red-500/20">
+                    <X size={20} className="text-red-400" />
+                  </span>
+                  Inactive Clients
+                </h3>
+                <p className="text-slate-400 text-sm mt-1">{inactiveClients.length} inactive client{inactiveClients.length !== 1 ? 's' : ''}</p>
+              </div>
+              <button onClick={() => { setShowInactiveModal(false); setInactiveSearch('') }} className="text-slate-400 hover:text-white hover:rotate-90 transition-all duration-300">
+                <X size={28} />
+              </button>
+            </div>
+
+            {/* Search */}
+            <div className="p-4 border-b border-slate-700">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <input
+                  type="text"
+                  placeholder="Search inactive clients..."
+                  value={inactiveSearch}
+                  onChange={e => setInactiveSearch(e.target.value)}
+                  className="w-full bg-slate-900/50 border border-slate-600 rounded-xl pl-11 pr-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-red-500 transition-all duration-300"
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            {/* List */}
+            <div className="overflow-y-auto flex-1 p-4 space-y-2">
+              {inactiveClients.length === 0 ? (
+                <div className="flex flex-col items-center gap-4 py-12">
+                  <CheckCircle size={48} className="text-green-500/50" />
+                  <p className="text-slate-400">{inactiveSearch ? 'No results found' : 'No inactive clients!'}</p>
+                </div>
+              ) : (
+                inactiveClients.map(client => (
+                  <div key={client.id} className="flex items-center justify-between p-4 bg-slate-900/50 rounded-2xl border border-slate-700 hover:border-slate-600 transition-all duration-300 group">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm shadow-lg">
+                        {client.client_name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-medium text-white">{client.client_name}</p>
+                        <p className="text-xs text-slate-500">{client.location || '-'} • {client.plans?.name || '-'}</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleToggleStatus(client)}
+                      disabled={togglingId === client.id}
+                      className="flex items-center gap-2 px-4 py-2 bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20 hover:border-green-500/40 rounded-xl text-sm font-semibold transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {togglingId === client.id ? (
+                        <Loader2 size={16} className="animate-spin" />
+                      ) : (
+                        <CheckCircle size={16} />
+                      )}
+                      Set Active
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-slate-700">
+              <button
+                onClick={() => { setShowInactiveModal(false); setInactiveSearch('') }}
+                className="w-full py-2.5 rounded-xl text-slate-300 hover:bg-slate-700 transition-all duration-300 font-medium"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
