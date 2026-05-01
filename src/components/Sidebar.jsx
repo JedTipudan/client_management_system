@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Users, Calendar, MapPin, Settings, Menu, X, Tag, LogIn, LogOut } from 'lucide-react'
+import { Home, Users, Calendar, MapPin, Settings, Menu, X, Tag, LogIn, LogOut, UserCheck, Wallet, ClipboardList } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
 import { adminEmails } from '../app/_lib/adminEmails'
 
@@ -43,6 +43,9 @@ export default function Sidebar() {
     { href: '/due-dates', icon: Calendar, label: 'Due Dates' },
     { href: '/locations', icon: MapPin, label: 'Locations' },
     { href: '/plans', icon: Tag, label: 'Plans' },
+    { href: '/employees', icon: ClipboardList, label: 'Employees' },
+    { href: '/attendance', icon: UserCheck, label: 'Attendance' },
+    { href: '/payroll', icon: Wallet, label: 'Payroll' },
   ]
 
   // Only admins can see Settings
