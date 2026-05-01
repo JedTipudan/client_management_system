@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import {
   Plus, X, CheckCircle, AlertCircle, Loader2, RefreshCw,
-  DollarSign, TrendingDown, Wallet, ChevronDown, ChevronUp, Search
+  Wallet, ChevronDown, ChevronUp, Search
 } from 'lucide-react'
 
 const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 'error', onClose: () => void }) => {
@@ -133,8 +133,6 @@ export default function PayrollPage() {
       })
   }, [employees, cashAdvances, attendance, period, search])
 
-  const totalGross = payrollData.reduce((s, e) => s + e.grossSalary, 0)
-  const totalDeductions = payrollData.reduce((s, e) => s + e.periodCA, 0)
   const totalNet = payrollData.reduce((s, e) => s + e.netPay, 0)
 
   return (
@@ -157,21 +155,7 @@ export default function PayrollPage() {
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        <div className="p-6 bg-gradient-to-br from-emerald-500/10 to-green-500/5 border border-emerald-500/20 rounded-2xl">
-          <div className="flex items-center justify-between mb-3"><p className="text-emerald-400 font-semibold">Total Gross</p><DollarSign size={24} className="text-emerald-400" /></div>
-          <p className="text-4xl font-bold text-white">₱{totalGross.toLocaleString()}</p>
-        </div>
-        <div className="p-6 bg-gradient-to-br from-red-500/10 to-pink-500/5 border border-red-500/20 rounded-2xl">
-          <div className="flex items-center justify-between mb-3"><p className="text-red-400 font-semibold">Total Deductions</p><TrendingDown size={24} className="text-red-400" /></div>
-          <p className="text-4xl font-bold text-white">₱{totalDeductions.toLocaleString()}</p>
-        </div>
-        <div className="p-6 bg-gradient-to-br from-blue-500/10 to-cyan-500/5 border border-blue-500/20 rounded-2xl">
-          <div className="flex items-center justify-between mb-3"><p className="text-blue-400 font-semibold">Total Net Pay</p><Wallet size={24} className="text-blue-400" /></div>
-          <p className="text-4xl font-bold text-white">₱{totalNet.toLocaleString()}</p>
-        </div>
-      </div>
+
 
       {/* Search */}
       <div className="bg-slate-800/50 p-5 rounded-2xl border border-slate-700 mb-8">
