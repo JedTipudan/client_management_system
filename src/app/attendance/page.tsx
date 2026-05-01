@@ -190,12 +190,28 @@ export default function AttendancePage() {
     if (!selectedEmp) return
     const existing = attendance.find(a => a.employee_id === selectedEmp.id && a.date === dateStr)
     setProcessingId(dateStr)
+
     if (existing) {
+      // Optimistically remove
+      setAttendance(prev => prev.filter(a => a.id !== existing.id))
       const { error } = await supabase.from('attendance').delete().eq('id', existing.id)
-      if (error) setToast({ message: 'Error: ' + error.message, type: 'error' })
+      if (error) {
+        setAttendance(prev => [...prev, existing]) // revert
+        setToast({ message: 'Error: ' + error.message, type: 'error' })
+      }
     } else {
-      const { error } = await supabase.from('attendance').insert({ employee_id: selectedEmp.id, date: dateStr, status: 'present' })
-      if (error) setToast({ message: 'Error: ' + error.message, type: 'error' })
+      // Optimistically add
+      const tempId = `temp-${dateStr}`
+      const newRecord = { id: tempId, employee_id: selectedEmp.id, date: dateStr, status: 'present' }
+      setAttendance(prev => [...prev, newRecord])
+      const { data, error } = await supabase.from('attendance').insert({ employee_id: selectedEmp.id, date: dateStr, status: 'present' }).select().single()
+      if (error) {
+        setAttendance(prev => prev.filter(a => a.id !== tempId)) // revert
+        setToast({ message: 'Error: ' + error.message, type: 'error' })
+      } else if (data) {
+        // Replace temp record with real one
+        setAttendance(prev => prev.map(a => a.id === tempId ? data : a))
+      }
     }
     setProcessingId(null)
   }
