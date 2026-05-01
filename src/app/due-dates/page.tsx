@@ -135,28 +135,34 @@ export default function DueDatesPage() {
     return `${newYear}-${String(newMonth).padStart(2, '0')}-${String(finalDay).padStart(2, '0')}`
   }
 
-  const getDueDate = (client: any) => {
-    const storedDue = client.due_date || calculateDueDate(client.installation_date) || ''
-    if (!storedDue || !client.installation_date) return storedDue
+  // Returns { displayDate, overdueDate }
+  // displayDate: what to show in the Due Date column (next upcoming due)
+  // overdueDate: the date used to calculate if they're overdue (the missed month)
+  const getDueDateInfo = (client: any) => {
+    const stored = client.due_date || calculateDueDate(client.installation_date) || ''
+    if (!stored || !client.installation_date) return { displayDate: stored, overdueDate: stored }
 
-    const originalDueDay = getOriginalDueDay(client)
-    if (!originalDueDay) return storedDue
+    const originalDay = Number(client.installation_date.split('-')[2])
+    const [dueYear, dueMonth, dueDay] = stored.split('-').map(Number)
 
-    const [dueYear, dueMonth] = storedDue.split('-').map(Number)
-    const daysInDueMonth = new Date(dueYear, dueMonth, 0).getDate()
-
-    // If install day doesn't exist in due month, find next valid month
-    if (originalDueDay > daysInDueMonth) {
-      let newMonth = dueMonth + 1
-      let newYear = dueYear
-      if (newMonth > 12) { newMonth = 1; newYear = dueYear + 1 }
-      const daysInNextMonth = new Date(newYear, newMonth, 0).getDate()
-      const finalDay = Math.min(originalDueDay, daysInNextMonth)
-      return `${newYear}-${String(newMonth).padStart(2, '0')}-${String(finalDay).padStart(2, '0')}`
+    // If stored day was clamped (e.g. Apr 30 instead of Apr 31),
+    // the client's real due was that month but couldn't be represented.
+    // overdueDate = the stored (clamped) date — it's already past, so they're overdue.
+    // displayDate = next month with the original day, so admin sees the correct next due.
+    if (dueDay < originalDay) {
+      let m = dueMonth + 1
+      let y = dueYear
+      if (m > 12) { m = 1; y++ }
+      const daysInNext = new Date(y, m, 0).getDate()
+      const finalDay = Math.min(originalDay, daysInNext)
+      const displayDate = `${y}-${String(m).padStart(2, '0')}-${String(finalDay).padStart(2, '0')}`
+      return { displayDate, overdueDate: stored }
     }
 
-    return storedDue
+    return { displayDate: stored, overdueDate: stored }
   }
+
+  const getDueDate = (client: any) => getDueDateInfo(client).overdueDate
 
   const getDaysRemaining = (dueDateStr: string) => {
     if (!dueDateStr) return null
@@ -179,47 +185,24 @@ export default function DueDatesPage() {
   const getPaymentStatus = (client: any) => {
     const dueDate = getDueDate(client)
     if (!dueDate) return { text: 'Pending', color: 'bg-slate-500/10 text-slate-400 border-slate-500/20' }
-    
-    const todayStr = getTodayStr()
-    const today = new Date(todayStr + 'T00:00:00')
-    const dueDateObj = new Date(dueDate + 'T00:00:00')
-    
-    const todayYearMonth = getCurrentYearMonth()
-    const [dueYear, dueMonth, dueDay] = dueDate.split('-').map(Number)
-    const monthsOverdue = (todayYearMonth.year - dueYear) * 12 + (todayYearMonth.month - dueMonth)
-    
-    if (dueDateObj > today) return { text: 'Paid', color: 'bg-green-500/10 text-green-400 border-green-500/20' }
-    
-    // Get the original due day from installation date
-    const originalDueDay = getOriginalDueDay(client)
-    const daysInCurrentMonth = new Date(todayYearMonth.year, todayYearMonth.month, 0).getDate()
 
-    if (originalDueDay && originalDueDay > daysInCurrentMonth) {
-      // Install day doesn't exist in current month - hide it
-      return { text: 'Paid', color: 'bg-green-500/10 text-green-400 border-green-500/20' }
-    }
+    const today = new Date(getTodayStr() + 'T00:00:00')
+    const dueDateObj = new Date(dueDate + 'T00:00:00')
+
+    if (dueDateObj > today) return { text: 'Paid', color: 'bg-green-500/10 text-green-400 border-green-500/20' }
+
+    const { year: ty, month: tm } = getCurrentYearMonth()
+    const [dueYear, dueMonth] = dueDate.split('-').map(Number)
+    const monthsOverdue = (ty - dueYear) * 12 + (tm - dueMonth)
 
     if (monthsOverdue >= 1) return { text: 'Unsettled', color: 'bg-orange-500/10 text-orange-400 border-orange-500/20' }
     return { text: 'Unpaid', color: 'bg-red-500/10 text-red-400 border-red-500/20' }
   }
 
-  const isDueDateInCurrentMonth = (dateStr: string, client: any) => {
+  const isDueDateInCurrentMonth = (dateStr: string) => {
     const todayStr = getTodayStr()
     const today = new Date(todayStr + 'T00:00:00')
     const dueDate = new Date(dateStr + 'T00:00:00')
-    
-    // Get the original due day from installation date
-    const originalDueDay = getOriginalDueDay(client)
-    
-    // Check if original due day exists in current month
-    const todayYearMonth = getCurrentYearMonth()
-    const daysInCurrentMonth = new Date(todayYearMonth.year, todayYearMonth.month, 0).getDate()
-    
-    // If original due day doesn't exist in current month, don't show as unpaid
-    if (originalDueDay && originalDueDay > daysInCurrentMonth) {
-      return false
-    }
-    
     return dueDate <= today
   }
 
@@ -244,7 +227,7 @@ export default function DueDatesPage() {
       if (statusFilter === 'all') return true
       if (statusFilter === 'paid') return status.text === 'Paid'
       if (statusFilter === 'unsettled') return status.text === 'Unsettled'
-      if (statusFilter === 'unpaid') return status.text === 'Unpaid' && isDueDateInCurrentMonth(dueDate, c)
+      if (statusFilter === 'unpaid') return status.text === 'Unpaid' && isDueDateInCurrentMonth(dueDate)
       return true
     })
 
@@ -278,43 +261,26 @@ export default function DueDatesPage() {
   const uniqueLocations = useMemo(() => [...new Set(clients.map(c => c.location).filter(Boolean))], [clients])
 
   const handleMarkAsPaid = async (client: any) => {
-    const currentDueDate = getDueDate(client)
-    if (!currentDueDate) return
+    const { displayDate } = getDueDateInfo(client)
+    if (!displayDate) return
 
-    const originalDay = client.installation_date 
-      ? Number(client.installation_date.split('-')[2]) 
-      : Number(currentDueDate.split('-')[2])
+    const originalDay = client.installation_date
+      ? Number(client.installation_date.split('-')[2])
+      : Number(displayDate.split('-')[2])
 
-    const [year, month] = currentDueDate.split('-').map(Number)
-    
-    // Check if current month already has the original day and we haven't used it yet
-    const daysInCurrentMonth = new Date(year, month, 0).getDate()
-    
+    const [year, month] = displayDate.split('-').map(Number)
+    let newMonth = month + 1
     let newYear = year
-    let newMonth = month
-    
-    // If current due month can accommodate the original day, use it
-    // Otherwise advance to next month
-    if (originalDay <= daysInCurrentMonth && Number(currentDueDate.split('-')[2]) < originalDay) {
-      // Stay in same month but use correct day
-      newYear = year
-      newMonth = month
-    } else {
-      // Advance to next month
-      newMonth = month + 1
-      if (newMonth > 12) { newMonth = 1; newYear = year + 1 }
-    }
+    if (newMonth > 12) { newMonth = 1; newYear++ }
 
     const daysInNewMonth = new Date(newYear, newMonth, 0).getDate()
     const finalDay = Math.min(originalDay, daysInNewMonth)
     const newDueDateStr = `${newYear}-${String(newMonth).padStart(2, '0')}-${String(finalDay).padStart(2, '0')}`
 
-    if (!confirm(`Mark as paid?\nDue date will advance from ${currentDueDate} to ${newDueDateStr}`)) return
-    
-    setProcessingId(client.id)
-    
-    const { error } = await supabase.from('clients').update({ due_date: newDueDateStr }).eq('id', client.id)
+    if (!confirm(`Mark as paid?\nDue date will advance from ${displayDate} to ${newDueDateStr}`)) return
 
+    setProcessingId(client.id)
+    const { error } = await supabase.from('clients').update({ due_date: newDueDateStr }).eq('id', client.id)
     if (!error) {
       setToast({ message: 'Payment marked successfully!', type: 'success' })
       fetchData()
@@ -466,8 +432,8 @@ export default function DueDatesPage() {
                 const paymentStatus = getPaymentStatus(client)
                 const clientStatus = (client.status === 'active' || client.status === 'inactive') ? client.status : 'active'
                 const isProcessing = processingId === client.id
-                const dueDate = getDueDate(client)
-                const daysLeft = getDaysRemaining(dueDate)
+                const { displayDate, overdueDate } = getDueDateInfo(client)
+                const daysLeft = getDaysRemaining(overdueDate)
                 
                 // Button should only be enabled when payment status is Unpaid or Unsettled
                 const isMarkAsPaidEnabled = paymentStatus.text === 'Unpaid' || paymentStatus.text === 'Unsettled'
@@ -509,7 +475,7 @@ export default function DueDatesPage() {
                     </td>
                     <td className="px-8 py-5 group-hover/date:text-yellow-300 transition-colors">
                       <div className="flex items-center gap-2 flex-wrap">
-                        {dueDate}
+                        {displayDate}
                         {daysLeft !== null && (
                           <span className={`text-xs px-2 py-1 rounded-full font-bold ${
                             daysLeft < 0 ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 
