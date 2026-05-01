@@ -29,10 +29,11 @@ export default function AttendancePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [processingId, setProcessingId] = useState<string | null>(null)
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null)
-  const [viewMode, setViewMode] = useState<'daily' | 'monthly'>('daily')
+  const [viewMode, setViewMode] = useState<'daily' | 'monthly' | 'halfmonth'>('daily')
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
   })
+  const [selectedHalf, setSelectedHalf] = useState<'first' | 'second'>(() => new Date().getDate() <= 15 ? 'first' : 'second')
   const [monthlyPage, setMonthlyPage] = useState(1)
   const itemsPerPage = 10
   const today = getTodayStr()
@@ -88,6 +89,20 @@ export default function AttendancePage() {
     setProcessingId(null)
   }
 
+  // 15-day summary
+  const halfMonthSummary = useMemo(() => {
+    const [y, m] = selectedMonth.split('-').map(Number)
+    const start = selectedHalf === 'first' ? `${selectedMonth}-01` : `${selectedMonth}-16`
+    const lastDay = new Date(y, m, 0).getDate()
+    const end = selectedHalf === 'first' ? `${selectedMonth}-15` : `${selectedMonth}-${lastDay}`
+    const totalDays = selectedHalf === 'first' ? 15 : lastDay - 15
+    const periodAtt = attendance.filter(a => a.date >= start && a.date <= end)
+    return employees.map(emp => {
+      const present = periodAtt.filter(a => a.employee_id === emp.id && a.status === 'present').length
+      return { ...emp, present, absent: Math.max(0, totalDays - present), start, end, totalDays }
+    })
+  }, [attendance, employees, selectedMonth, selectedHalf])
+
   // Monthly summary
   const monthlySummary = useMemo(() => {
     const monthAtt = attendance.filter(a => a.date.startsWith(selectedMonth))
@@ -136,18 +151,34 @@ export default function AttendancePage() {
       </div>
 
       {/* View Toggle */}
-      <div className="flex gap-3 mb-8">
+      <div className="flex gap-3 mb-8 flex-wrap">
         <button onClick={() => setViewMode('daily')}
           className={`px-5 py-2.5 rounded-xl font-medium transition-all ${viewMode === 'daily' ? 'bg-cyan-600 text-white' : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'}`}>
           Daily
+        </button>
+        <button onClick={() => setViewMode('halfmonth')}
+          className={`px-5 py-2.5 rounded-xl font-medium transition-all ${viewMode === 'halfmonth' ? 'bg-cyan-600 text-white' : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'}`}>
+          15-Day Summary
         </button>
         <button onClick={() => setViewMode('monthly')}
           className={`px-5 py-2.5 rounded-xl font-medium transition-all ${viewMode === 'monthly' ? 'bg-cyan-600 text-white' : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'}`}>
           Monthly Summary
         </button>
-        {viewMode === 'monthly' && (
+        {(viewMode === 'monthly' || viewMode === 'halfmonth') && (
           <input type="month" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)}
             className="bg-slate-800 border border-slate-600 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500" />
+        )}
+        {viewMode === 'halfmonth' && (
+          <div className="flex gap-2">
+            <button onClick={() => setSelectedHalf('first')}
+              className={`px-4 py-2.5 rounded-xl font-medium transition-all ${selectedHalf === 'first' ? 'bg-teal-600 text-white' : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'}`}>
+              1st–15th
+            </button>
+            <button onClick={() => setSelectedHalf('second')}
+              className={`px-4 py-2.5 rounded-xl font-medium transition-all ${selectedHalf === 'second' ? 'bg-teal-600 text-white' : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'}`}>
+              16th–End
+            </button>
+          </div>
         )}
       </div>
 
@@ -194,6 +225,48 @@ export default function AttendancePage() {
             )
           })}
         </div>
+      )}
+
+      {/* 15-Day Summary View */}
+      {viewMode === 'halfmonth' && (
+        <>
+          <div className="mb-4 text-slate-400 text-sm">
+            Period: <span className="text-white font-semibold">{halfMonthSummary[0]?.start} → {halfMonthSummary[0]?.end}</span>
+            <span className="ml-3 text-slate-500">({halfMonthSummary[0]?.totalDays} working days)</span>
+          </div>
+          <div className="overflow-x-auto bg-slate-900/50 rounded-2xl border border-slate-800">
+            <table className="w-full text-left min-w-[500px]">
+              <thead className="bg-slate-900 border-b border-slate-700">
+                <tr>
+                  {['Employee', 'Position', 'Present', 'Absent'].map(h => (
+                    <th key={h} className="px-8 py-5 text-xs font-semibold text-slate-400 uppercase tracking-wider">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-700">
+                {halfMonthSummary.map((emp: any) => (
+                  <tr key={emp.id} className="hover:bg-slate-800/50 transition-all">
+                    <td className="px-8 py-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500 to-teal-500 flex items-center justify-center text-white font-bold text-sm">
+                          {emp.name.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="font-medium text-white">{emp.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-8 py-5 text-slate-400">{emp.position}</td>
+                    <td className="px-8 py-5">
+                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-500/10 text-green-400 border border-green-500/20">{emp.present} days</span>
+                    </td>
+                    <td className="px-8 py-5">
+                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-500/10 text-red-400 border border-red-500/20">{emp.absent} days</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {/* Monthly View */}
