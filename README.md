@@ -1,36 +1,71 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Client Management System
+
+A [Next.js](https://nextjs.org) web application for managing internet service clients, tracking due dates, and monitoring payment statuses.
+
+## Features
+
+- Client management (add, edit, delete, active/inactive)
+- Due dates dashboard with real-time updates via Supabase
+- Payment status tracking: **Paid**, **Unpaid**, **Unsettled**
+- Location and plan management
+- Admin controls for marking payments
+- Live Supabase realtime subscriptions
 
 ## Getting Started
 
-First, run the development server:
+### 1. Set up environment variables
+
+Create a `.env.local` file in the root directory:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url_here
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+```
+
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+### 3. Run the development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to view the app.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Payment Status Logic
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Status | Meaning |
+|---|---|
+| **Paid** | Due date is in the future |
+| **Unpaid** | Due date has passed within the current month |
+| **Unsettled** | Due date is more than 1 month overdue |
 
-## Learn More
+### Clamped Due Date Handling
 
-To learn more about Next.js, take a look at the following resources:
+If a client's installation day doesn't exist in the due month (e.g. day 31 in April), the system:
+- Stores the clamped date (e.g. `2025-04-30`) as the overdue reference — so the client correctly appears as **Unsettled** starting May 1
+- Displays the next valid due date (e.g. `2025-05-31`) in the Due Date column
+- Advances to the correct day when marked as paid
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Tech Stack
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- [Next.js 16](https://nextjs.org)
+- [Supabase](https://supabase.com) — database & realtime
+- [Tailwind CSS](https://tailwindcss.com)
+- [Lucide React](https://lucide.dev) — icons
 
-## Deploy on Vercel
+## Deployment
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Deployed via [Vercel](https://vercel.com). Every push to `main` triggers an automatic redeploy.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Changelog
+
+### 2025-05-01
+- Fixed due date status bug for clients with install day 31 in months with fewer days (e.g. April)
+- Clients with clamped due dates (e.g. April 30 instead of April 31) now correctly show as **Unsettled** instead of **Paid**
+- Due Date column now displays the next valid due date (e.g. May 31) while status is calculated from the actual missed month
+- Simplified `handleMarkAsPaid` to always advance from the correct display date
