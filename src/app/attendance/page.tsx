@@ -40,16 +40,32 @@ function AttendanceCalendarModal({ emp, attendance, isAdmin, onClose, onToggle, 
   const daysInMonth = new Date(calYear, calMonth, 0).getDate()
   const firstDayOfWeek = new Date(calYear, calMonth - 1, 1).getDay()
 
-  const empAttendance = useMemo(() =>
-    new Set(attendance.filter(a => a.employee_id === emp.id && a.status === 'present').map(a => a.date))
-  , [attendance, emp.id])
+  const empAttendance = useMemo(() => {
+    const map = new Map()
+    attendance.filter(a => a.employee_id === emp.id && a.status === 'present').forEach(a => {
+      map.set(a.date, a.shift || 'full')
+    })
+    return map
+  }, [attendance, emp.id])
 
-  const totalDaysWorked = empAttendance.size
+  const totalDaysWorked = useMemo(() => {
+    let total = 0
+    empAttendance.forEach(shift => {
+      total += shift === 'full' ? 1 : 0.5
+    })
+    return total
+  }, [empAttendance])
 
   // Present days in current calendar month view
   const presentThisMonth = useMemo(() => {
     const prefix = `${calYear}-${String(calMonth).padStart(2, '0')}`
-    return [...empAttendance].filter(d => d.startsWith(prefix)).length
+    let total = 0
+    empAttendance.forEach((shift, date) => {
+      if (date.startsWith(prefix)) {
+        total += shift === 'full' ? 1 : 0.5
+      }
+    })
+    return total
   }, [empAttendance, calYear, calMonth])
 
   const prevMonth = () => {
@@ -108,7 +124,8 @@ function AttendanceCalendarModal({ emp, attendance, isAdmin, onClose, onToggle, 
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const day = i + 1
               const dateStr = toDateStr(calYear, calMonth, day)
-              const isPresent = empAttendance.has(dateStr)
+              const shift = empAttendance.get(dateStr)
+              const isPresent = !!shift
               const isToday = dateStr === today
               const processing = processingId === dateStr
 
@@ -119,21 +136,38 @@ function AttendanceCalendarModal({ emp, attendance, isAdmin, onClose, onToggle, 
                   disabled={processing || !isAdmin}
                   className={`relative aspect-square flex items-center justify-center rounded-xl text-sm font-medium transition-all
                     ${isPresent
-                      ? 'bg-green-500 text-white hover:bg-green-400'
+                      ? shift === 'morning'
+                        ? 'bg-amber-500 text-white hover:bg-amber-400'
+                        : shift === 'afternoon'
+                        ? 'bg-blue-500 text-white hover:bg-blue-400'
+                        : 'bg-green-500 text-white hover:bg-green-400'
                       : isToday
                       ? 'ring-2 ring-cyan-500 text-cyan-400 hover:bg-slate-700'
                       : 'text-slate-300 hover:bg-slate-700/60'}
                     ${!isAdmin ? 'cursor-default' : 'cursor-pointer'}
                     disabled:opacity-60`}
                 >
-                  {processing ? <Loader2 size={12} className="animate-spin" /> : day}
+                  {processing ? <Loader2 size={12} className="animate-spin" /> : (
+                    <div className="flex flex-col items-center">
+                      <span>{day}</span>
+                      {shift === 'morning' && <span className="text-[8px]">AM</span>}
+                      {shift === 'afternoon' && <span className="text-[8px]">PM</span>}
+                    </div>
+                  )}
                 </button>
               )
             })}
           </div>
 
           {isAdmin && (
-            <p className="text-xs text-slate-500 mt-3 text-center">Click a date to toggle present / absent</p>
+            <div className="mt-4 space-y-2">
+              <p className="text-xs text-slate-500 text-center">Click a date to cycle: Absent → Morning → Afternoon → Full Day</p>
+              <div className="flex items-center justify-center gap-3 text-xs">
+                <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-amber-500"></div><span className="text-slate-400">Morning</span></div>
+                <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-blue-500"></div><span className="text-slate-400">Afternoon</span></div>
+                <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-green-500"></div><span className="text-slate-400">Full Day</span></div>
+              </div>
+            </div>
           )}
         </div>
 
@@ -192,24 +226,37 @@ export default function AttendancePage() {
     setProcessingId(dateStr)
 
     if (existing) {
-      // Optimistically remove
-      setAttendance(prev => prev.filter(a => a.id !== existing.id))
-      const { error } = await supabase.from('attendance').delete().eq('id', existing.id)
-      if (error) {
-        setAttendance(prev => [...prev, existing]) // revert
-        setToast({ message: 'Error: ' + error.message, type: 'error' })
+      const currentShift = existing.shift || 'full'
+      const nextShift = currentShift === 'morning' ? 'afternoon' : currentShift === 'afternoon' ? 'full' : null
+      
+      if (nextShift) {
+        // Update shift
+        const updated = { ...existing, shift: nextShift }
+        setAttendance(prev => prev.map(a => a.id === existing.id ? updated : a))
+        const { error } = await supabase.from('attendance').update({ shift: nextShift }).eq('id', existing.id)
+        if (error) {
+          setAttendance(prev => prev.map(a => a.id === existing.id ? existing : a))
+          setToast({ message: 'Error: ' + error.message, type: 'error' })
+        }
+      } else {
+        // Delete (cycle back to absent)
+        setAttendance(prev => prev.filter(a => a.id !== existing.id))
+        const { error } = await supabase.from('attendance').delete().eq('id', existing.id)
+        if (error) {
+          setAttendance(prev => [...prev, existing])
+          setToast({ message: 'Error: ' + error.message, type: 'error' })
+        }
       }
     } else {
-      // Optimistically add
+      // Create new with morning shift
       const tempId = `temp-${dateStr}`
-      const newRecord = { id: tempId, employee_id: selectedEmp.id, date: dateStr, status: 'present' }
+      const newRecord = { id: tempId, employee_id: selectedEmp.id, date: dateStr, status: 'present', shift: 'morning' }
       setAttendance(prev => [...prev, newRecord])
-      const { data, error } = await supabase.from('attendance').insert({ employee_id: selectedEmp.id, date: dateStr, status: 'present' }).select().single()
+      const { data, error } = await supabase.from('attendance').insert({ employee_id: selectedEmp.id, date: dateStr, status: 'present', shift: 'morning' }).select().single()
       if (error) {
-        setAttendance(prev => prev.filter(a => a.id !== tempId)) // revert
+        setAttendance(prev => prev.filter(a => a.id !== tempId))
         setToast({ message: 'Error: ' + error.message, type: 'error' })
       } else if (data) {
-        // Replace temp record with real one
         setAttendance(prev => prev.map(a => a.id === tempId ? data : a))
       }
     }
@@ -219,8 +266,14 @@ export default function AttendancePage() {
   const todayPresent = attendance.filter(a => a.date === today && a.status === 'present').length
   const todayAbsent = employees.length - todayPresent
 
-  const totalDaysWorked = (empId: string) =>
-    attendance.filter(a => a.employee_id === empId && a.status === 'present').length
+  const totalDaysWorked = (empId: string) => {
+    let total = 0
+    attendance.filter(a => a.employee_id === empId && a.status === 'present').forEach(a => {
+      const shift = a.shift || 'full'
+      total += shift === 'full' ? 1 : 0.5
+    })
+    return total
+  }
 
   const isPresentToday = (empId: string) =>
     attendance.some(a => a.employee_id === empId && a.date === today && a.status === 'present')
@@ -304,7 +357,7 @@ export default function AttendancePage() {
                   </td>
                   <td className="px-6 py-4">
                     <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                      {totalWorked} days
+                      {totalWorked.toFixed(1)} days
                     </span>
                   </td>
                   <td className="px-6 py-4">
