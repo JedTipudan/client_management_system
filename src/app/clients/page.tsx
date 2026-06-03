@@ -168,19 +168,18 @@ export default function ClientsPage() {
       setToast({ message: 'Please fill in all required fields', type: 'error' })
       return
     }
-    const due_date = calculateDueDate(formData.installation_date)
-    const finalData = { ...formData, due_date }
     setProcessingId('saving')
     
     if (editId) {
-      const { error } = await supabase.from('clients').update(finalData).eq('id', editId)
+      const { error } = await supabase.from('clients').update(formData).eq('id', editId)
       if (!error) {
         setToast({ message: 'Client updated successfully!', type: 'success' })
       } else {
         setToast({ message: 'Error: ' + error.message, type: 'error' })
       }
     } else {
-      const { error } = await supabase.from('clients').insert(finalData)
+      const due_date = calculateDueDate(formData.installation_date)
+      const { error } = await supabase.from('clients').insert({ ...formData, due_date })
       if (!error) {
         setToast({ message: 'Client added successfully!', type: 'success' })
       } else {

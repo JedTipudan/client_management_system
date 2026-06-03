@@ -150,13 +150,18 @@ export default function DueDatesPage() {
     // overdueDate = the stored (clamped) date — it's already past, so they're overdue.
     // displayDate = next month with the original day, so admin sees the correct next due.
     if (dueDay < originalDay) {
-      let m = dueMonth + 1
-      let y = dueYear
-      if (m > 12) { m = 1; y++ }
-      const daysInNext = new Date(y, m, 0).getDate()
-      const finalDay = Math.min(originalDay, daysInNext)
-      const displayDate = `${y}-${String(m).padStart(2, '0')}-${String(finalDay).padStart(2, '0')}`
-      return { displayDate, overdueDate: stored }
+      const today = new Date(getTodayStr() + 'T00:00:00')
+      const storedObj = new Date(stored + 'T00:00:00')
+      // Only treat as overdue if the clamped date is already past
+      if (storedObj < today) {
+        let m = dueMonth + 1
+        let y = dueYear
+        if (m > 12) { m = 1; y++ }
+        const daysInNext = new Date(y, m, 0).getDate()
+        const finalDay = Math.min(originalDay, daysInNext)
+        const displayDate = `${y}-${String(m).padStart(2, '0')}-${String(finalDay).padStart(2, '0')}`
+        return { displayDate, overdueDate: stored }
+      }
     }
 
     return { displayDate: stored, overdueDate: stored }
